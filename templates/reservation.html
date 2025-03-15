@@ -200,7 +200,7 @@
                 endTime: CLOSE_HOUR + ':00'
             },
             validRange: function(nowDate) {
-                // 오늘부터 4주 후까지만 예약 가능
+                // 오늘부터 6일 후까지만 예약 가능
                 const endDate = new Date(nowDate.valueOf());
                 endDate.setDate(endDate.getDate() + 6);
                 return {
@@ -225,29 +225,7 @@
                 // 캘린더 선택 해제 (드래그 박스 제거)
                 calendar.unselect();
             },
-                
-            // 현재 날짜 확인
-            const today = new Date();
-            const todayDay = today.getDay();
-            const isCultureContent = {{ 'true' if current_user.department == config.CULTURE_CONTENT_DEPT else 'false' }};
-                
-            // 현재가 일요일이나 문화콘텐츠학과 학생의 토요일이면 다음 주의 모든 날짜 선택 가능
-            const canBookToday = (todayDay === 0) || (todayDay === 6 && isCultureContent);
-                
-            if (canBookToday) {
-                    // 다음 주 날짜들을 예약 가능
-                    const nextWeekStart = new Date(today);
-                    nextWeekStart.setDate(today.getDate() + (7 - today.getDay()));
-                    const nextWeekEnd = new Date(nextWeekStart);
-                    nextWeekEnd.setDate(nextWeekStart.getDate() + 6);
-                    
-                    // 선택한 날짜가 다음 주 날짜인지 확인
-                    const selectionDate = new Date(start.getFullYear(), start.getMonth(), start.getDate());
-                    return selectionDate >= nextWeekStart && selectionDate <= nextWeekEnd;
-                }
-                
-                return false;
-
+            
             eventSources: [
                 // 기존 예약 표시
                 {

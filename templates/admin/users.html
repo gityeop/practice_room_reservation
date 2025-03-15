@@ -1,0 +1,232 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+    .admin-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+    
+    .admin-header {
+        margin-bottom: 25px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .admin-nav {
+        background-color: #f8f9fa;
+        padding: 10px;
+        border-radius: 5px;
+        margin-bottom: 20px;
+    }
+    
+    .admin-nav a {
+        margin-right: 15px;
+        color: #495057;
+        text-decoration: none;
+        font-weight: 500;
+    }
+    
+    .admin-nav a:hover, .admin-nav a.active {
+        color: #007bff;
+    }
+    
+    .users-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 20px;
+    }
+    
+    .users-table th, .users-table td {
+        padding: 12px 15px;
+        text-align: left;
+        border-bottom: 1px solid #dee2e6;
+    }
+    
+    .users-table th {
+        background-color: #f8f9fa;
+        font-weight: 600;
+        color: #495057;
+    }
+    
+    .users-table tr:hover {
+        background-color: #f8f9fa;
+    }
+    
+    .user-actions {
+        display: flex;
+        gap: 10px;
+    }
+    
+    .btn-danger {
+        background-color: #dc3545;
+        color: white;
+        border: none;
+        padding: 5px 10px;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+    
+    .btn-danger:hover {
+        background-color: #c82333;
+    }
+    
+    .empty-message {
+        text-align: center;
+        padding: 40px;
+        color: #6c757d;
+        background-color: #f8f9fa;
+        border-radius: 5px;
+    }
+    
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+    }
+    
+    .modal-content {
+        background-color: white;
+        margin: 15% auto;
+        padding: 20px;
+        border-radius: 5px;
+        max-width: 500px;
+        position: relative;
+    }
+    
+    .close-modal {
+        position: absolute;
+        right: 15px;
+        top: 10px;
+        font-size: 24px;
+        cursor: pointer;
+        color: #aaa;
+    }
+    
+    .modal-footer {
+        margin-top: 20px;
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+    }
+    
+    .btn-secondary {
+        background-color: #6c757d;
+        color: white;
+        border: none;
+        padding: 8px 15px;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+    
+    .btn-secondary:hover {
+        background-color: #5a6268;
+    }
+</style>
+
+<div class="admin-container">
+    <div class="admin-header">
+        <h2>회원 관리</h2>
+    </div>
+    
+    <div class="admin-nav">
+        <a href="{{ url_for('admin.dashboard') }}">예약 관리</a>
+        <a href="{{ url_for('admin.manage_users') }}" class="active">회원 관리</a>
+        <a href="{{ url_for('admin.block_time') }}">시간 차단 설정</a>
+        <a href="{{ url_for('admin.stats') }}">통계</a>
+    </div>
+    
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            <div class="alert alert-info">
+                {% for message in messages %}
+                    {{ message }}
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+    
+    {% if users %}
+        <table class="users-table">
+            <thead>
+                <tr>
+                    <th>이름</th>
+                    <th>학번</th>
+                    <th>학과</th>
+                    <th>총 예약 횟수</th>
+                    <th>취소 횟수</th>
+                    <th>관리</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                <tr>
+                    <td>{{ user.name }}</td>
+                    <td>{{ user.student_id }}</td>
+                    <td>{{ user.department }}</td>
+                    <td>{{ user_stats[user.id].total_reservations }}</td>
+                    <td>{{ user.cancel_count }}</td>
+                    <td class="user-actions">
+                        <button class="btn-danger" onclick="confirmDelete('{{ user.name }}', {{ user.id }})">회원 탈퇴</button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <div class="empty-message">
+            <p>등록된 회원이 없습니다.</p>
+        </div>
+    {% endif %}
+    
+    <!-- 삭제 확인 모달 -->
+    <div id="deleteModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeModal()">&times;</span>
+            <h3>회원 탈퇴 확인</h3>
+            <p id="deleteConfirmMessage"></p>
+            <p>이 작업은 되돌릴 수 없으며, 모든 예약 정보도 함께 삭제됩니다.</p>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeModal()">취소</button>
+                <form id="deleteForm" method="post">
+                    <button type="submit" class="btn-danger">삭제 확인</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // 삭제 확인 모달 표시
+    function confirmDelete(userName, userId) {
+        const modal = document.getElementById('deleteModal');
+        const message = document.getElementById('deleteConfirmMessage');
+        const form = document.getElementById('deleteForm');
+        
+        message.textContent = `사용자 ${userName}(을)를 삭제하시겠습니까?`;
+        form.action = `{{ url_for('admin.delete_user', user_id=0) }}`.replace('0', userId);
+        
+        modal.style.display = 'block';
+    }
+    
+    // 모달 닫기
+    function closeModal() {
+        document.getElementById('deleteModal').style.display = 'none';
+    }
+    
+    // 모달 외부 클릭 시 닫기
+    window.onclick = function(event) {
+        const modal = document.getElementById('deleteModal');
+        if (event.target == modal) {
+            closeModal();
+        }
+    }
+</script>
+{% endblock %}

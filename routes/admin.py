@@ -217,3 +217,62 @@ def stats():
      .group_by('hour').all()
     
     return render_template('admin/stats.html', dept_stats=dept_stats, hour_stats=hour_stats)
+
+@admin_bp.route('/users')
+@login_required
+def manage_users():
+    """회원 관리 페이지를 출력합니다."""
+    # 관리자를 제외한 모든 사용자 가져오기
+    users = User.query.filter(User.is_admin == False).order_by(User.name).all()
+    
+    # 각 사용자별 예약 횟수 정보 가져오기
+    user_stats = {}
+    for user in users:
+        reservation_count = Reservation.query.filter_by(user_id=user.id).count()
+        user_stats[user.id] = {
+            'total_reservations': reservation_count,
+            'cancel_count': user.cancel_count
+        }
+    
+    return render_template('admin/users.html', users=users, user_stats=user_stats)
+
+@admin_bp.route('/users/delete/<int:user_id>', methods=['POST'])
+@login_required
+def delete_user(user_id):
+    """회원 탈퇴 처리를 합니다."""
+    user = User.query.get_or_404(user_id)
+    
+    # 관리자 계정은 삭제할 수 없음
+    if user.is_admin:
+        flash('관리자 계정은 삭제할 수 없습니다.')
+        return redirect(url_for('admin.manage_users'))
+    
+    # 회원의 예약 정보를 삭제하거나 업데이트
+    reservations = Reservation.query.filter_by(user_id=user.id).all()
+    
+    # 현재나 미래의 예약이 있는지 확인
+    has_active_reservations = False
+    for reservation in reservations:
+        if reservation.date >= datetime.now().date() and reservation.status in ['pending', 'approved']:
+            has_active_reservations = True
+            break
+    
+    if has_active_reservations:
+        flash('사용자에게 진행 중이거나 예정된 예약이 있습니다. 예약을 취소하거나 완료한 후 다시 시도해주세요.')
+        return redirect(url_for('admin.manage_users'))
+    
+    # 사용자 삭제 처리
+    try:
+        # 예약 정보 삭제
+        for reservation in reservations:
+            db.session.delete(reservation)
+        
+        # 사용자 삭제
+        db.session.delete(user)
+        db.session.commit()
+        flash(f'사용자 {user.name}({user.student_id})이(가) 삭제되었습니다.')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'사용자 삭제 중 오류가 발생했습니다: {str(e)}')
+    
+    return redirect(url_for('admin.manage_users'))
