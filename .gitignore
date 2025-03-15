@@ -1,0 +1,26 @@
+# ubc84uc804 uad00ub9acuc5d0uc11c uc81cuc678ud560 ud30cuc77c
+
+# ud658uacbd ubcc0uc218 ud30cuc77c
+.env
+.flaskenv
+
+# ub370uc774ud130ubca0uc774uc2a4 ud30cuc77c
+*.db
+*.sqlite
+
+# ud30cuc774uc36c ucea90uc2dc ud30cuc77c
+__pycache__/
+*.py[cod]
+*$py.class
+
+# ub85cuadf8 ud30cuc77c
+*.log
+
+# uac00uc0c1ud658uacbd
+venv/
+env/
+ENV/
+
+# uc2dcuc2a4ud15c ud30cuc77c
+.DS_Store
+Thumbs.db

@@ -1,0 +1,331 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="admin-dashboard">
+    <h2>관리자 대시보드</h2>
+    
+    <!-- 필터 옵션 -->
+    <div class="filter-options mb-4">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                필터 옵션
+            </div>
+            <div class="card-body">
+                <form id="filter-form" method="get" action="{{ url_for('admin.dashboard') }}" class="row g-3">
+                    <!-- 상태 필터 -->
+                    <div class="col-md-6">
+                        <label for="filter" class="form-label">예약 상태</label>
+                        <select id="filter" name="filter" class="form-select" onchange="document.getElementById('filter-form').submit();">
+                            <option value="all" {% if filter_type == 'all' %}selected{% endif %}>전체 보기</option>
+                            <option value="pending" {% if filter_type == 'pending' %}selected{% endif %}>대기 중</option>
+                            <option value="approved" {% if filter_type == 'approved' %}selected{% endif %}>승인됨</option>
+                            <option value="rejected" {% if filter_type == 'rejected' %}selected{% endif %}>거절됨</option>
+                            <option value="canceled" {% if filter_type == 'canceled' %}selected{% endif %}>취소됨</option>
+                        </select>
+                    </div>
+                    
+                    <!-- 날짜 범위 필터 -->
+                    <div class="col-md-6">
+                        <label for="range" class="form-label">날짜 범위</label>
+                        <select id="range" name="range" class="form-select" onchange="document.getElementById('filter-form').submit();">
+                            <option value="week" {% if date_range == 'week' %}selected{% endif %}>일주일</option>
+                            <option value="all" {% if date_range == 'all' %}selected{% endif %}>전체 기록</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 날짜별 예약 현황 -->
+    <div class="reservation-calendar">
+        <h3>예약 현황 {% if date_range == 'week' %}(일주일){% else %}(전체){% endif %}</h3>
+        
+        {% if dates %}
+        <div class="calendar-view">
+            {% for date in dates %}
+                <div class="date-group">
+                    <h4>{{ date.strftime('%Y-%m-%d') }} 
+                        {% if date.strftime('%w') == '0' %}(일)
+                        {% elif date.strftime('%w') == '1' %}(월)
+                        {% elif date.strftime('%w') == '2' %}(화)
+                        {% elif date.strftime('%w') == '3' %}(수)
+                        {% elif date.strftime('%w') == '4' %}(목)
+                        {% elif date.strftime('%w') == '5' %}(금)
+                        {% elif date.strftime('%w') == '6' %}(토)
+                        {% endif %}
+                        {% if date == today %}
+                            <span class="badge bg-info">오늘</span>
+                        {% endif %}
+                    </h4>
+                    
+                    {% for reservation in grouped_reservations[date] %}
+                    <div class="reservation-item status-{{ reservation.status }}">
+                        <span class="time">{{ reservation.start_time.strftime('%H:%M') }} - {{ reservation.end_time.strftime('%H:%M') }}</span>
+                        <span class="user">{{ reservation.user.name }} ({{ reservation.user.department }})</span>
+                        <span class="purpose">{{ reservation.purpose }}</span>
+                        <span class="status">
+                            {% if reservation.status == 'pending' %}
+                                <span class="badge bg-warning text-dark">대기 중</span>
+                            {% elif reservation.status == 'approved' %}
+                                <span class="badge bg-success">승인됨</span>
+                            {% elif reservation.status == 'rejected' %}
+                                <span class="badge bg-danger">거절됨</span>
+                            {% elif reservation.status == 'canceled' %}
+                                <span class="badge bg-secondary">취소됨</span>
+                            {% endif %}
+                        </span>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% endfor %}
+        </div>
+        {% else %}
+            <p class="alert alert-info">현재 필터 조건에 해당하는 예약이 없습니다.</p>
+        {% endif %}
+    </div>
+    
+    <!-- 승인 대기 중인 예약 -->
+    <div class="pending-reservations">
+        <h3>승인 대기 중인 예약</h3>
+        
+        {% if pending_reservations %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>이름</th>
+                        <th>학과</th>
+                        <th>학번</th>
+                        <th>날짜</th>
+                        <th>시작 시간</th>
+                        <th>종료 시간</th>
+                        <th>목적</th>
+                        <th>작업</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for reservation in pending_reservations %}
+                    <tr>
+                        <td>{{ reservation.user.name }}</td>
+                        <td>{{ reservation.user.department }}</td>
+                        <td>{{ reservation.user.student_id }}</td>
+                        <td>{{ reservation.date.strftime('%Y-%m-%d') }}</td>
+                        <td>{{ reservation.start_time.strftime('%H:%M') }}</td>
+                        <td>{{ reservation.end_time.strftime('%H:%M') }}</td>
+                        <td>{{ reservation.purpose }}</td>
+                        <td class="action-buttons">
+                            <form action="{{ url_for('admin.approve_reservation', reservation_id=reservation.id) }}" method="post" class="inline-form">
+                                <button type="submit" class="btn btn-success">승인</button>
+                            </form>
+                            <form action="{{ url_for('admin.reject_reservation', reservation_id=reservation.id) }}" method="post" class="inline-form">
+                                <button type="submit" class="btn btn-danger">거부</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p>승인 대기 중인 예약이 없습니다.</p>
+        {% endif %}
+    </div>
+    
+    <!-- 승인된 예약 -->
+    <div class="approved-reservations">
+        <h3>승인된 예약</h3>
+        
+        {% if approved_reservations %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>이름</th>
+                        <th>학과</th>
+                        <th>학번</th>
+                        <th>날짜</th>
+                        <th>시작 시간</th>
+                        <th>종료 시간</th>
+                        <th>목적</th>
+                        <th>작업</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for reservation in approved_reservations %}
+                    <tr>
+                        <td>{{ reservation.user.name }}</td>
+                        <td>{{ reservation.user.department }}</td>
+                        <td>{{ reservation.user.student_id }}</td>
+                        <td>{{ reservation.date.strftime('%Y-%m-%d') }}</td>
+                        <td>{{ reservation.start_time.strftime('%H:%M') }}</td>
+                        <td>{{ reservation.end_time.strftime('%H:%M') }}</td>
+                        <td>{{ reservation.purpose }}</td>
+                        <td class="action-buttons">
+                            <form action="{{ url_for('reservation.cancel_reservation', reservation_id=reservation.id) }}" method="post" class="inline-form" onsubmit="return confirm('정말 이 예약을 취소하시겠습니까?');">
+                                <button type="submit" class="btn btn-danger">취소</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p>승인된 예약이 없습니다.</p>
+        {% endif %}
+    </div>
+    
+    <!-- 거절된 예약 -->
+    <div class="rejected-reservations">
+        <h3>거절된 예약</h3>
+        
+        {% if rejected_reservations %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>이름</th>
+                        <th>학과</th>
+                        <th>학번</th>
+                        <th>날짜</th>
+                        <th>시작 시간</th>
+                        <th>종료 시간</th>
+                        <th>목적</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for reservation in rejected_reservations %}
+                    <tr>
+                        <td>{{ reservation.user.name }}</td>
+                        <td>{{ reservation.user.department }}</td>
+                        <td>{{ reservation.user.student_id }}</td>
+                        <td>{{ reservation.date.strftime('%Y-%m-%d') }}</td>
+                        <td>{{ reservation.start_time.strftime('%H:%M') }}</td>
+                        <td>{{ reservation.end_time.strftime('%H:%M') }}</td>
+                        <td>{{ reservation.purpose }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p>거절된 예약이 없습니다.</p>
+        {% endif %}
+    </div>
+    
+    <!-- 취소된 예약 -->
+    <div class="canceled-reservations">
+        <h3>취소된 예약</h3>
+        
+        {% if canceled_reservations %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>이름</th>
+                        <th>학과</th>
+                        <th>학번</th>
+                        <th>날짜</th>
+                        <th>시작 시간</th>
+                        <th>종료 시간</th>
+                        <th>목적</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for reservation in canceled_reservations %}
+                    <tr>
+                        <td>{{ reservation.user.name }}</td>
+                        <td>{{ reservation.user.department }}</td>
+                        <td>{{ reservation.user.student_id }}</td>
+                        <td>{{ reservation.date.strftime('%Y-%m-%d') }}</td>
+                        <td>{{ reservation.start_time.strftime('%H:%M') }}</td>
+                        <td>{{ reservation.end_time.strftime('%H:%M') }}</td>
+                        <td>{{ reservation.purpose }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p>취소된 예약이 없습니다.</p>
+        {% endif %}
+    </div>
+    
+    <style>
+        .calendar-view {
+            margin-bottom: 30px;
+        }
+        
+        .date-group {
+            margin-bottom: 20px;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 10px;
+            background-color: #f8f9fa;
+        }
+        
+        .date-group h4 {
+            margin-bottom: 10px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid #dee2e6;
+        }
+        
+        .reservation-item {
+            padding: 8px;
+            margin-bottom: 5px;
+            border-radius: 3px;
+            display: flex;
+            flex-wrap: wrap;
+            background-color: white;
+            border-left: 4px solid #6c757d;
+        }
+        
+        .reservation-item.status-pending {
+            border-left-color: #fd7e14; /* 주황색 */
+        }
+        
+        .reservation-item.status-approved {
+            border-left-color: #28a745; /* 녹색 */
+        }
+        
+        .reservation-item.status-rejected {
+            border-left-color: #dc3545; /* 빨간색 */
+        }
+        
+        .reservation-item.status-canceled {
+            border-left-color: #6c757d; /* 회색 */
+        }
+        
+        .reservation-item span {
+            margin-right: 15px;
+        }
+        
+        .reservation-item .time {
+            font-weight: bold;
+            min-width: 120px;
+        }
+        
+        .reservation-item .user {
+            min-width: 180px;
+        }
+        
+        .reservation-item .purpose {
+            flex: 1;
+            color: #495057;
+        }
+        
+        .reservation-item .status {
+            font-weight: bold;
+        }
+        
+        .status-pending .status {
+            color: #fd7e14;
+        }
+        
+        .status-approved .status {
+            color: #28a745;
+        }
+        
+        .status-rejected .status {
+            color: #dc3545;
+        }
+        
+        .status-canceled .status {
+            color: #6c757d;
+        }
+    </style>
+</div>
+{% endblock %}

@@ -1,0 +1,433 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+    /* 캘린더 드래그 선택 스타일 */
+    .fc-highlight {
+        background-color: rgba(0, 123, 255, 0.3) !important;
+        border: 2px dashed #007bff !important;
+    }
+    
+    /* 임시 선택된 이벤트 스타일 */
+    .temp-selection {
+        border: 2px solid #fff !important;
+        box-shadow: 0 0 10px rgba(0, 123, 255, 0.5) !important;
+    }
+    
+    /* 버튼 애니메이션 효과 */
+    .btn-pulse {
+        animation: pulse 1.5s infinite;
+    }
+    
+    @keyframes pulse {
+        0% {
+            box-shadow: 0 0 0 0 rgba(0, 123, 255, 0.7);
+        }
+        70% {
+            box-shadow: 0 0 0 10px rgba(0, 123, 255, 0);
+        }
+        100% {
+            box-shadow: 0 0 0 0 rgba(0, 123, 255, 0);
+        }
+    }
+    
+    /* 선택 정보 강조 */
+    .selected-info-highlight {
+        background-color: #f8f9fa;
+        border-left: 4px solid #007bff;
+        padding: 10px;
+        border-radius: 4px;
+    }
+</style>
+<div class="reservation-container">
+    <h2>실습실 예약하기</h2>
+    
+    <!-- 예약 안내 -->    
+    <div class="reservation-info mb-4">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">예약 안내</h5>
+            </div>
+            <div class="card-body">
+                <ul class="mb-0">
+                    <li>예약 가능 시간: 매주 일요일 오전 10시부터 오후 10시까지</li>
+                    <li>문화콘텐츠학과 학생은 매주 토요일 오전 10시부터 오후 10시에 사전 예약 가능</li>
+                    <li>하루 최대 <strong>{{ max_hours }}시간</strong>까지 예약 가능합니다.</li>
+                    <li>예약은 하루 전까지 취소할 수 있습니다.</li>
+                    <li>3회 이상 취소 시 예약 우선순위가 낮아집니다.</li>
+                    <li><span class="text-primary">드래그하여 원하는 시간대를 선택하세요.</span> (최대 3시간)</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- 캘린더 뷰 -->
+        <div class="col-md-8 mb-4">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">예약 캘린더</h5>
+                </div>
+                <div class="card-body">
+                    <div id="calendar"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 예약 폼 -->
+        <div class="col-md-4 mb-4">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">예약 정보</h5>
+                </div>
+                <div class="card-body">
+                    <form id="reservation-form" action="{{ url_for('reservation.reserve') }}" method="post">
+                        <div class="form-group mb-3">
+                            <label for="date" class="form-label">날짜</label>
+                            <input type="date" id="date" name="date" class="form-control" required readonly>
+                        </div>
+                        <div class="form-group mb-3">
+                            <label for="start_time" class="form-label">시작 시간</label>
+                            <input type="time" id="start_time" name="start_time" class="form-control" required readonly>
+                        </div>
+                        <div class="form-group mb-3">
+                            <label for="end_time" class="form-label">종료 시간</label>
+                            <input type="time" id="end_time" name="end_time" class="form-control" required readonly>
+                        </div>
+                        <div class="form-group mb-3">
+                            <label for="purpose" class="form-label">예약 목적</label>
+                            <textarea id="purpose" name="purpose" class="form-control" rows="3" required></textarea>
+                        </div>
+                        <div class="form-group">
+                            <button type="submit" id="submit-btn" class="btn btn-primary w-100" disabled>예약하기</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- 선택 시간 정보 표시 -->
+            <div class="card mt-3">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">선택 정보</h5>
+                </div>
+                <div class="card-body">
+                    <p id="selected-time-info">캘린더에서 시간대를 선택해주세요.</p>
+                    <p id="duration-info"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 사용 불가능한 시간 표시 -->
+    {% if blocked_times %}
+    <div class="blocked-times mt-4">
+        <div class="card">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0">사용 불가능한 시간</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered table-striped">
+                        <thead>
+                            <tr>
+                                <th>날짜</th>
+                                <th>시작 시간</th>
+                                <th>종료 시간</th>
+                                <th>사유</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for block in blocked_times %}
+                            <tr>
+                                <td>{{ block.date.strftime('%Y-%m-%d') }}</td>
+                                <td>{{ block.start_time.strftime('%H:%M') }}</td>
+                                <td>{{ block.end_time.strftime('%H:%M') }}</td>
+                                <td>{{ block.reason }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // 전역 상수 정의
+    const MAX_HOURS = {{ max_hours }};
+    const OPEN_HOUR = 10; // 오전 10시
+    const CLOSE_HOUR = 22; // 오후 10시
+    
+    // 예약 및 차단된 시간 데이터
+    const existingReservations = {{ existing_reservations_json|tojson }};
+    const blockedTimes = {{ blocked_times_json|tojson }};
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        // 캘린더 요소 가져오기
+        const calendarEl = document.getElementById('calendar');
+        
+        // FullCalendar 초기화
+        const calendar = new FullCalendar.Calendar(calendarEl, {
+            locale: 'ko',
+            initialView: 'timeGridWeek',
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'timeGridWeek,timeGridDay'
+            },
+            slotDuration: '00:30:00', // 30분 단위로 표시
+            slotMinTime: OPEN_HOUR + ':00:00', // 오전 10시부터
+            slotMaxTime: CLOSE_HOUR + ':00:00', // 오후  10시까지
+            allDaySlot: false, // 하루 종일 슬롯 숨기기
+            selectable: true, // 드래그 선택 가능
+            selectMirror: true, // 드래그 중 미리보기 활성화
+            selectOverlap: false, // 이미 예약된 시간과 겹치지 않게
+            nowIndicator: true, // 현재 시간 표시
+            // 최대 선택 시간은 selectAllow 함수에서 제한
+            selectMinTime: OPEN_HOUR + ':00:00', // 오전 10시부터 선택 가능
+            maxTime: CLOSE_HOUR + ':00:00', // 영업 종료 시간
+            // 테스트 목적으로 모든 요일 선택 가능하도록 설정
+            // selectConstraint: { 
+            //     daysOfWeek: [0, 6] // 토, 일요일만 선택 가능
+            // },
+            businessHours: {
+                daysOfWeek: [0, 1, 2, 3, 4, 5, 6], // 모든 요일 표시
+                startTime: OPEN_HOUR + ':00',
+                endTime: CLOSE_HOUR + ':00'
+            },
+            validRange: function(nowDate) {
+                // 오늘부터 4주 후까지만 예약 가능
+                const endDate = new Date(nowDate.valueOf());
+                endDate.setDate(endDate.getDate() + 6);
+                return {
+                    start: nowDate,
+                    end: endDate
+                };
+            },
+            // 모든 선택을 허용하고 select 함수에서 처리함
+            selectAllow: function() {
+                return true;
+            },
+            // 선택 변경 이벤트를 처리하는 함수 추가 - 선택 중 크기 제한
+            selectOverlap: false,
+            // 3시간 이상 드래그해도 3시간까지만 표시되도록 제한
+            selectLongPressDelay: 0,
+            
+            // 날짜 클릭 이벤트 추가 - 클릭하면 기존 선택 삭제
+            dateClick: function(info) {
+                // 기존 선택을 제거
+                removeTemporarySelection();
+                
+                // 캘린더 선택 해제 (드래그 박스 제거)
+                calendar.unselect();
+            },
+                
+            // 현재 날짜 확인
+            const today = new Date();
+            const todayDay = today.getDay();
+            const isCultureContent = {{ 'true' if current_user.department == config.CULTURE_CONTENT_DEPT else 'false' }};
+                
+            // 현재가 일요일이나 문화콘텐츠학과 학생의 토요일이면 다음 주의 모든 날짜 선택 가능
+            const canBookToday = (todayDay === 0) || (todayDay === 6 && isCultureContent);
+                
+            if (canBookToday) {
+                    // 다음 주 날짜들을 예약 가능
+                    const nextWeekStart = new Date(today);
+                    nextWeekStart.setDate(today.getDate() + (7 - today.getDay()));
+                    const nextWeekEnd = new Date(nextWeekStart);
+                    nextWeekEnd.setDate(nextWeekStart.getDate() + 6);
+                    
+                    // 선택한 날짜가 다음 주 날짜인지 확인
+                    const selectionDate = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+                    return selectionDate >= nextWeekStart && selectionDate <= nextWeekEnd;
+                }
+                
+                return false;
+
+            eventSources: [
+                // 기존 예약 표시
+                {
+                    events: existingReservations.map(reservation => ({
+                        id: reservation.id,
+                        title: reservation.purpose,
+                        start: reservation.date + 'T' + reservation.start_time,
+                        end: reservation.date + 'T' + reservation.end_time,
+                        backgroundColor: reservation.status === 'approved' ? '#28a745' : 
+                                        (reservation.status === 'pending' ? '#fd7e14' : '#dc3545'),
+                        extendedProps: {
+                            status: reservation.status,
+                            user: reservation.user_name
+                        }
+                    }))
+                },
+                // 차단된 시간 표시
+                {
+                    events: blockedTimes.map(block => ({
+                        title: block.reason,
+                        start: block.date + 'T' + block.start_time,
+                        end: block.date + 'T' + block.end_time,
+                        backgroundColor: '#dc3545',
+                        rendering: 'background'
+                    })),
+                    rendering: 'background',
+                    color: '#dc3545'
+                }
+            ],
+            // 이벤트 클릭 핸들러
+            eventClick: function(info) {
+                // 내 예약인 경우만 상세정보 표시
+                if (info.event.extendedProps.user === '{{ current_user.name }}') {
+                    alert('예약 정보:\n' + 
+                          '상태: ' + info.event.extendedProps.status + '\n' +
+                          '목적: ' + info.event.title);
+                }
+            },
+            // 시간대 선택 핸들러
+            select: function(info) {
+                // 새 선택 시 기존 선택 지우기
+                removeTemporarySelection();
+                
+                const start = info.start;
+                let end = info.end;
+                
+                // 선택 시간 계산 (시간 단위)
+                let durationMs = end.getTime() - start.getTime();
+                let durationHours = durationMs / (1000 * 60 * 60);
+                
+                // 최대 예약 시간 제한 (3시간)
+                if (durationHours > MAX_HOURS) {
+                    // 3시간이 넘어가면 시작 시간부터 3시간으로 제한
+                    const maxEnd = new Date(start.getTime() + (MAX_HOURS * 60 * 60 * 1000));
+                    end = maxEnd;
+                    durationHours = MAX_HOURS;
+                    
+                    // 현재 선택 취소
+                    calendar.unselect();
+                    
+                    // 3시간 박스를 다시 그림
+                    calendar.select(start, maxEnd);
+                    
+                    // 이 이후 코드 실행 중지(새로운 select 이벤트가 발생할 것이미로)
+                    return;
+                }
+                
+                // 선택한 시간이 이미 차단되었는지 확인 (차단된 시간도 이벤트로 추가되어 있지만 확실성을 위해 다시 확인)
+                const isBlocked = blockedTimes.some(block => {
+                    const blockStart = new Date(`${block.date}T${block.start_time}`);
+                    const blockEnd = new Date(`${block.date}T${block.end_time}`);
+                    return (start < blockEnd && end > blockStart);
+                });
+                
+                if (isBlocked) {
+                    calendar.unselect();
+                    alert('차단된 시간대입니다. 다른 시간을 선택해주세요.');
+                    return;
+                }
+                
+                // 예약 폼 업데이트
+                updateReservationForm(start, end, durationHours);
+                
+                // 선택한 시간 시각화 - 이벤트 추가 및 참조 저장
+                tempSelectionEvent = calendar.addEvent({
+                    title: '예약 선택됨',
+                    start: start,
+                    end: end,
+                    backgroundColor: '#007bff',
+                    textColor: '#ffffff',
+                    classNames: ['temp-selection'],
+                    durationEditable: false,
+                    startEditable: false
+                });
+            }
+        });
+        
+        // 캘린더 렌더링
+        calendar.render();
+        
+        // 임시 선택 이벤트 변수
+        let tempSelectionEvent = null;
+        
+        // 예약 폼 업데이트 함수
+        function updateReservationForm(start, end, durationHours) {
+            // 이전 임시 선택 이벤트 삭제
+            removeTemporarySelection();
+            
+            // 날짜 포맷 변환
+            const dateStr = start.toISOString().split('T')[0];
+            const startTimeStr = start.toTimeString().substring(0, 5);
+            const endTimeStr = end.toTimeString().substring(0, 5);
+            
+            // 날짜 포맷팅 함수
+            function formatDateKorean(dateStr) {
+                const date = new Date(dateStr);
+                const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
+                const dayOfWeek = dayNames[date.getDay()];
+                return `${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일 (${dayOfWeek})`;
+            }
+            
+            // 폼 필드 업데이트
+            document.getElementById('date').value = dateStr;
+            document.getElementById('start_time').value = startTimeStr;
+            document.getElementById('end_time').value = endTimeStr;
+            
+            // 선택 정보 업데이트 (좋은 포맷으로 표시)
+            const formattedDate = formatDateKorean(dateStr);
+            document.getElementById('selected-time-info').innerHTML = 
+                `<strong>선택한 날짜:</strong> ${formattedDate}<br>
+                <strong>시간대:</strong> ${startTimeStr} ~ ${endTimeStr}`;
+            
+            // 시간 계산 및 표시
+            const hours = Math.floor(durationHours);
+            const minutes = Math.round((durationHours - hours) * 60);
+            let durationText = '';
+            if (hours > 0) durationText += `${hours}시간 `;
+            if (minutes > 0) durationText += `${minutes}분`;
+            
+            document.getElementById('duration-info').innerHTML = 
+                `<strong>총 예약 시간:</strong> <span class="badge bg-primary">${durationText}</span>`;
+            
+            // 예약 버튼 활성화 및 스타일 변경
+            const submitBtn = document.getElementById('submit-btn');
+            submitBtn.disabled = false;
+            submitBtn.classList.add('btn-pulse'); // 애니메이션 효과 추가
+            
+            // 3초 후 패스 효과 제거
+            setTimeout(() => {
+                submitBtn.classList.remove('btn-pulse');
+            }, 3000);
+            
+            // 임시 선택 이벤트 추가 후 저장
+            tempSelectionEvent = calendar.addEvent({
+                title: '예약 선택됨',
+                start: start,
+                end: end,
+                backgroundColor: '#007bff',
+                textColor: '#ffffff',
+                classNames: ['temp-selection'],
+                durationEditable: false,
+                startEditable: false
+            });
+        }
+        
+        // 임시 선택 삭제 함수
+        function removeTemporarySelection() {
+            if (tempSelectionEvent) {
+                tempSelectionEvent.remove();
+                tempSelectionEvent = null;
+            }
+            
+            // 캘린더에서 임시 선택 클래스를 가진 모든 이벤트 삭제 (안정성 보장)
+            const events = calendar.getEvents();
+            events.forEach(event => {
+                if (event.classNames.includes('temp-selection')) {
+                    event.remove();
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

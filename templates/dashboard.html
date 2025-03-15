@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="dashboard">
+    <h2>내 예약 현황</h2>
+    
+    {% if reservations %}
+        <table class="reservations-table">
+            <thead>
+                <tr>
+                    <th>날짜</th>
+                    <th>시작 시간</th>
+                    <th>종료 시간</th>
+                    <th>목적</th>
+                    <th>상태</th>
+                    <th>작업</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for reservation in reservations %}
+                <tr>
+                    <td>{{ reservation.date.strftime('%Y-%m-%d') }}</td>
+                    <td>{{ reservation.start_time.strftime('%H:%M') }}</td>
+                    <td>{{ reservation.end_time.strftime('%H:%M') }}</td>
+                    <td>{{ reservation.purpose }}</td>
+                    <td>
+                        {% if reservation.status == 'pending' %}
+                            <span class="status-pending">승인 대기중</span>
+                        {% elif reservation.status == 'approved' %}
+                            <span class="status-approved">승인됨</span>
+                        {% elif reservation.status == 'rejected' %}
+                            <span class="status-rejected">거부됨</span>
+                        {% elif reservation.status == 'canceled' %}
+                            <span class="status-canceled">취소됨</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if reservation.status == 'pending' or reservation.status == 'approved' %}
+                            <form action="{{ url_for('reservation.cancel_reservation', reservation_id=reservation.id) }}" method="post">
+                                <button type="submit" class="btn btn-danger">취소</button>
+                            </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>예약 내역이 없습니다.</p>
+    {% endif %}
+    
+    <div class="action-buttons">
+        <a href="{{ url_for('reservation.reserve') }}" class="btn btn-primary">새 예약 만들기</a>
+    </div>
+</div>
+{% endblock %}

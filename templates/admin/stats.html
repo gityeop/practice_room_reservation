@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="admin-stats">
+    <h2>사용 통계</h2>
+    
+    <div class="stats-section">
+        <h3>학과별 이용률</h3>
+        {% if dept_stats %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>학과</th>
+                        <th>예약 수</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for dept in dept_stats %}
+                    <tr>
+                        <td>{{ dept.department }}</td>
+                        <td>{{ dept.reservation_count }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p>아직 통계 데이터가 없습니다.</p>
+        {% endif %}
+    </div>
+    
+    <div class="stats-section">
+        <h3>시간대별 이용률</h3>
+        {% if hour_stats %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>시간</th>
+                        <th>예약 수</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for hour in hour_stats %}
+                    <tr>
+                        <td>{{ hour.hour }}:00</td>
+                        <td>{{ hour.reservation_count }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p>아직 통계 데이터가 없습니다.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

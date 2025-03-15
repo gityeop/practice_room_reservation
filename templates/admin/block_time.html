@@ -1,0 +1,338 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-12 mb-4">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h2 class="mb-0">수업/회의 시간 차단하기</h2>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted">캘린더에서 드래그하여 차단할 시간을 선택하세요. 여러 시간대를 한 번에 선택할 수 있습니다.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- 캘린더 영역 -->
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h3 class="mb-0">시간대 선택</h3>
+                </div>
+                <div class="card-body">
+                    <div id="calendar"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 선택된 시간 및 양식 영역 -->
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-header bg-light">
+                    <h3 class="mb-0">선택된 시간</h3>
+                </div>
+                <div class="card-body">
+                    <div id="selected-times" class="mb-4">
+                        <p class="text-muted">캘린더에서 시간을 선택하세요</p>
+                    </div>
+                    
+                    <form id="block-time-form" action="{{ url_for('admin.block_time') }}" method="post">
+                        <input type="hidden" name="batch" value="true">
+                        <input type="hidden" id="time-blocks" name="time_blocks" value="">
+                        <div class="form-group">
+                            <label for="batch-reason">차단 사유</label>
+                            <input type="text" class="form-control" id="batch-reason" 
+                                placeholder="수업, 회의 등" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-block mt-3" id="save-blocks">
+                            선택한 시간 차단하기
+                        </button>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- 기존 방식의 단일 시간 차단 폼 -->
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h3 class="mb-0">직접 입력하여 차단</h3>
+                </div>
+                <div class="card-body">
+                    <form action="{{ url_for('admin.block_time') }}" method="post">
+                        <div class="form-group">
+                            <label for="date">날짜</label>
+                            <input type="date" class="form-control" id="date" name="date" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="start_time">시작 시간</label>
+                            <input type="time" class="form-control" id="start_time" name="start_time" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="end_time">종료 시간</label>
+                            <input type="time" class="form-control" id="end_time" name="end_time" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="reason">차단 사유</label>
+                            <input type="text" class="form-control" id="reason" name="reason" 
+                                placeholder="수업, 회의 등" required>
+                        </div>
+                        <button type="submit" class="btn btn-secondary btn-block mt-3">단일 시간 차단하기</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 차단된 시간 테이블 -->
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h3 class="mb-0">차단된 시간 목록</h3>
+                </div>
+                <div class="card-body">
+                    {% if blocked_times %}
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>날짜</th>
+                                        <th>시작 시간</th>
+                                        <th>종료 시간</th>
+                                        <th>사유</th>
+                                        <th>작업</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for block in blocked_times %}
+                                    <tr>
+                                        <td>{{ block.date.strftime('%Y-%m-%d') }}</td>
+                                        <td>{{ block.start_time.strftime('%H:%M') }}</td>
+                                        <td>{{ block.end_time.strftime('%H:%M') }}</td>
+                                        <td>{{ block.reason }}</td>
+                                        <td>
+                                            <form action="{{ url_for('admin.unblock_time', block_id=block.id) }}" method="post">
+                                                <button type="submit" class="btn btn-danger btn-sm">차단 해제</button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <p class="text-muted">차단된 시간이 없습니다.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- FullCalendar 관련 JavaScript -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // 서버에서 전달받은 차단된 시간 및 예약 데이터 가져오기
+        const blockedTimesData = {{ blocked_times_json|tojson }};
+        const reservationsData = {{ reservations_json|tojson }};
+        
+        // 선택된 시간 배열
+        let selectedTimeBlocks = [];
+        
+        // 달력 이벤트 데이터 준비
+        const events = [];
+        
+        // 차단된 시간을 이벤트로 변환
+        blockedTimesData.forEach(block => {
+            events.push({
+                id: 'block-' + block.id,
+                title: '차단됨: ' + block.reason,
+                start: block.date + 'T' + block.start_time,
+                end: block.date + 'T' + block.end_time,
+                backgroundColor: '#d9534f',  // 빨간색 (Bootstrap danger)
+                borderColor: '#d9534f',
+                editable: false,
+                extendedProps: {
+                    type: 'block',
+                    reason: block.reason
+                }
+            });
+        });
+        
+        // 예약 데이터를 이벤트로 변환
+        reservationsData.forEach(res => {
+            const statusColors = {
+                'pending': '#f0ad4e',   // 노란색 (Bootstrap warning)
+                'approved': '#5cb85c',  // 초록색 (Bootstrap success)
+                'rejected': '#d9534f',  // 빨간색 (Bootstrap danger)
+                'canceled': '#777777'   // 회색
+            };
+            
+            events.push({
+                id: 'res-' + res.id,
+                title: res.user_name + ': ' + res.purpose,
+                start: res.date + 'T' + res.start_time,
+                end: res.date + 'T' + res.end_time,
+                backgroundColor: statusColors[res.status],
+                borderColor: statusColors[res.status],
+                editable: false,
+                extendedProps: {
+                    type: 'reservation',
+                    status: res.status,
+                    user: res.user_name,
+                    purpose: res.purpose
+                }
+            });
+        });
+        
+        // FullCalendar 초기화
+        const calendarEl = document.getElementById('calendar');
+        const calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'timeGridWeek',
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'timeGridWeek,timeGridDay'
+            },
+            slotMinTime: '09:00:00',
+            slotMaxTime: '22:00:00',
+            allDaySlot: false,
+            locale: 'ko',
+            selectable: true,
+            selectMirror: true,
+            events: events,
+            eventTimeFormat: {
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+            },
+            select: function(info) {
+                // 새로운 시간 블록 생성
+                const startDate = info.start;
+                const endDate = info.end;
+                
+                // 시간 형식 변환 함수
+                function formatDate(date) {
+                    return date.toISOString().split('T')[0];
+                }
+                
+                function formatTime(date) {
+                    return date.toTimeString().substring(0, 5);
+                }
+                
+                // 선택한 시간을 배열에 추가
+                const newBlock = {
+                    date: formatDate(startDate),
+                    start_time: formatTime(startDate),
+                    end_time: formatTime(endDate),
+                    reason: document.getElementById('batch-reason').value || '미지정'
+                };
+                
+                // 임시 ID 부여 (화면에 표시용)
+                newBlock.tempId = 'temp-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
+                
+                // 선택된 시간을 배열에 추가
+                selectedTimeBlocks.push(newBlock);
+                
+                // 선택한 시간을 화면에 표시
+                updateSelectedTimesList();
+                
+                // 선택한 시간을 캘린더에 임시로 표시
+                calendar.addEvent({
+                    id: newBlock.tempId,
+                    title: '선택됨: ' + newBlock.reason,
+                    start: newBlock.date + 'T' + newBlock.start_time,
+                    end: newBlock.date + 'T' + newBlock.end_time,
+                    backgroundColor: '#5bc0de',  // 파란색 (Bootstrap info)
+                    borderColor: '#5bc0de',
+                    textColor: '#fff'
+                });
+                
+                calendar.unselect();  // 선택 해제
+            },
+            eventClick: function(info) {
+                // 임시로 추가한 선택된 이벤트만 삭제 가능
+                if (info.event.id.startsWith('temp-')) {
+                    // 배열에서 해당 항목 제거
+                    selectedTimeBlocks = selectedTimeBlocks.filter(block => block.tempId !== info.event.id);
+                    // 화면에서 이벤트 제거
+                    info.event.remove();
+                    // 선택 목록 업데이트
+                    updateSelectedTimesList();
+                }
+            }
+        });
+        
+        calendar.render();
+        
+        // 선택된 시간 목록 업데이트 함수
+        function updateSelectedTimesList() {
+            const container = document.getElementById('selected-times');
+            
+            if (selectedTimeBlocks.length === 0) {
+                container.innerHTML = '<p class="text-muted">캘린더에서 시간을 선택하세요</p>';
+                return;
+            }
+            
+            let html = '<ul class="list-group">';
+            
+            selectedTimeBlocks.forEach(block => {
+                html += `<li class="list-group-item d-flex justify-content-between align-items-center">
+                        ${block.date} ${block.start_time}-${block.end_time}
+                        <button type="button" class="btn btn-sm btn-danger" 
+                        onclick="removeTimeBlock('${block.tempId}')">삭제</button>
+                    </li>`;
+            });
+            
+            html += '</ul>';
+            container.innerHTML = html;
+        }
+        
+        // 시간 블록 제거 함수 (전역으로 정의)
+        window.removeTimeBlock = function(tempId) {
+            // 배열에서 제거
+            selectedTimeBlocks = selectedTimeBlocks.filter(block => block.tempId !== tempId);
+            
+            // 캘린더에서 제거
+            const event = calendar.getEventById(tempId);
+            if (event) {
+                event.remove();
+            }
+            
+            // 목록 업데이트
+            updateSelectedTimesList();
+        };
+        
+        // 폼 제출 전에 선택된 시간 정보를 hidden 필드에 저장
+        document.getElementById('block-time-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            if (selectedTimeBlocks.length === 0) {
+                alert('차단할 시간을 하나 이상 선택해주세요.');
+                return;
+            }
+            
+            const reason = document.getElementById('batch-reason').value;
+            if (!reason) {
+                alert('차단 사유를 입력해주세요.');
+                return;
+            }
+            
+            // 모든 블록에 사유 적용
+            selectedTimeBlocks.forEach(block => {
+                block.reason = reason;
+                // 임시 ID 제거 (서버 전송용)
+                delete block.tempId;
+            });
+            
+            // JSON 변환하여 hidden 필드에 저장
+            document.getElementById('time-blocks').value = JSON.stringify(selectedTimeBlocks);
+            
+            // 폼 제출
+            this.submit();
+        });
+    });
+</script>
+{% endblock %}
