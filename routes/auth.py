@@ -21,7 +21,7 @@ def register():
         # 이미 등록된 학번인지 확인
         user = User.query.filter_by(student_id=student_id).first()
         if user:
-            flash('이미 등록된 학번입니다.')
+            flash('이미 등록된 학번입니다.', 'error')
             return redirect(url_for('auth.register'))
         
         # 새 사용자 생성

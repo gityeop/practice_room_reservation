@@ -37,7 +37,7 @@ def reserve():
     can_book = ((is_saturday and is_culture_content) or is_sunday)  and is_booking_time
     
     if not can_book and not current_user.is_admin:
-        flash('예약은 일요일 오전 10시부터 오후 10시 사이, 문화콘텐츠학과 학생의 경우 토요일 동일 시간대에 가능합니다. 선택한 요일에 다음 주 전체 날짜를 예약할 수 있습니다.')
+        flash('예약은 일요일 오전 10시부터 오후 10시 사이, 문화콘텐츠학과 학생의 경우 토요일 동일 시간대에 가능합니다. 선택한 요일에 다음 주 전체 날짜를 예약할 수 있습니다.', 'error')
         return redirect(url_for('reservation.dashboard'))
     
     if request.method == 'POST':
@@ -52,7 +52,7 @@ def reserve():
             start_time = datetime.strptime(start_time_str, '%H:%M').time()
             end_time = datetime.strptime(end_time_str, '%H:%M').time()
         except ValueError:
-            flash('날짜 또는 시간 형식이 올바르지 않습니다.')
+            flash('날짜 또는 시간 형식이 올바르지 않습니다.', 'error')
             return redirect(url_for('reservation.reserve'))
         
         # 시간 검증
@@ -62,11 +62,11 @@ def reserve():
         # 예약 시간이 3시간을 초과하는지 확인
         duration = (end_datetime - start_datetime).total_seconds() / 3600
         if duration > Config.MAX_HOURS_PER_DAY:
-            flash(f'하루 최대 예약 시간은 {Config.MAX_HOURS_PER_DAY}시간입니다.')
+            flash(f'하루 최대 예약 시간은 {Config.MAX_HOURS_PER_DAY}시간입니다.', 'error')
             return redirect(url_for('reservation.reserve'))
         
         if start_time >= end_time:
-            flash('종료 시간은 시작 시간보다 나중이어야 합니다.')
+            flash('종료 시간은 시작 시간보다 나중이어야 합니다.', 'error')
             return redirect(url_for('reservation.reserve'))
         
         # 이미 예약된 시간과 겹치는지 확인
@@ -78,7 +78,7 @@ def reserve():
         ).all()
         
         if existing_reservations:
-            flash('선택한 시간에 이미 예약이 있습니다.')
+            flash('선택한 시간에 이미 예약이 있습니다.', 'error')
             return redirect(url_for('reservation.reserve'))
         
         # 차단된 시간과 겹치는지 확인
@@ -90,7 +90,7 @@ def reserve():
         
         if blocked_times:
             reasons = [block.reason for block in blocked_times]
-            flash(f'선택한 시간은 {", ".join(reasons)}으로 인해 예약할 수 없습니다.')
+            flash(f'선택한 시간은 {", ".join(reasons)}으로 인해 예약할 수 없습니다.', 'error')
             return redirect(url_for('reservation.reserve'))
         
         # 예약 추가
@@ -105,7 +105,7 @@ def reserve():
         db.session.add(new_reservation)
         db.session.commit()
         
-        flash('예약이 신청되었습니다. 관리자 승인을 기다려주세요.')
+        flash('예약이 신청되었습니다. 관리자 승인을 기다려주세요.', 'success')
         return redirect(url_for('reservation.dashboard'))
     
     # 캘린더 뷰에 필요한 데이터 준비
@@ -156,7 +156,7 @@ def cancel_reservation(reservation_id):
     
     # 사용자 소유의 예약인지 확인
     if reservation.user_id != current_user.id and not current_user.is_admin:
-        flash('접근 권한이 없습니다.')
+        flash('접근 권한이 없습니다.', 'error')
         return redirect(url_for('reservation.dashboard'))
     
     # 관리자는 제한 없이 예약 취소 가능, 일반 사용자는 하루 전까지만 취소 가능
@@ -164,7 +164,7 @@ def cancel_reservation(reservation_id):
         now = datetime.now()
         reservation_date = datetime.combine(reservation.date, reservation.start_time)
         if (reservation_date - now).total_seconds() < 24 * 3600:
-            flash('예약은 하루 전까지만 취소할 수 있습니다.')
+            flash('예약은 하루 전까지만 취소할 수 있습니다.', 'error')
             return redirect(url_for('reservation.dashboard'))
     
     # 취소 횟수 증가 (관리자가 아닌 경우)
@@ -174,7 +174,7 @@ def cancel_reservation(reservation_id):
     reservation.status = 'canceled'
     db.session.commit()
     
-    flash('예약이 취소되었습니다.')
+    flash('예약이 취소되었습니다.', 'success')
     if current_user.is_admin:
         return redirect(url_for('admin.dashboard'))
     return redirect(url_for('reservation.dashboard'))

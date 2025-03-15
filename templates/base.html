@@ -37,11 +37,11 @@
     </header>
     
     <main class="container">
-        {% with messages = get_flashed_messages() %}
+        {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
-                <div class="flash-messages">
-                    {% for message in messages %}
-                        <div class="flash-message">{{ message }}</div>
+                <div class="flash-messages" style="display: none;">
+                    {% for category, message in messages %}
+                        <div class="flash-message {% if category == 'success' %}alert-success{% elif category == 'error' %}alert-error{% elif category == 'warning' %}alert-warning{% elif category == 'info' %}alert-info{% else %}alert-{{ category }}{% endif %}">{{ message }}</div>
                     {% endfor %}
                 </div>
             {% endif %}
@@ -63,6 +63,8 @@
     <!-- FullCalendar JS -->
     <script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js'></script>
     <script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/locales-all.min.js'></script>
+    <!-- 토스트 알림 JS -->
+    <script src="{{ url_for('static', filename='js/toast.js') }}"></script>
     <!-- Custom JS -->
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
     {% block scripts %}{% endblock %}
