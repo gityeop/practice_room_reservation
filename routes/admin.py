@@ -9,7 +9,7 @@ admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
 @admin_bp.before_request
 def restrict_to_admins():
     if not current_user.is_authenticated or not current_user.is_admin:
-        flash('관리자 권한이 필요합니다.')
+        flash('관리자 권한이 필요합니다.', 'error')
         return redirect(url_for('auth.login'))
 
 @admin_bp.route('/')
@@ -85,7 +85,7 @@ def reject_reservation(reservation_id):
     reservation = Reservation.query.get_or_404(reservation_id)
     reservation.status = 'rejected'
     db.session.commit()
-    flash('예약이 거부되었습니다.')
+    flash('예약이 거부되었습니다.', 'error')
     return redirect(url_for('admin.dashboard'))
 
 @admin_bp.route('/block-time', methods=['GET', 'POST'])
@@ -121,7 +121,7 @@ def block_time():
                     continue  # 잘못된 형식은 건너뛰기
             
             db.session.commit()
-            flash('선택한 모든 시간대가 차단되었습니다.')
+            flash('선택한 모든 시간대가 차단되었습니다.', 'success')
             return redirect(url_for('admin.block_time'))
         else:
             # 단일 시간대 차단 (기존 방식)
@@ -135,7 +135,7 @@ def block_time():
                 start_time = datetime.strptime(start_time_str, '%H:%M').time()
                 end_time = datetime.strptime(end_time_str, '%H:%M').time()
             except ValueError:
-                flash('날짜 또는 시간 형식이 올바르지 않습니다.')
+                flash('날짜 또는 시간 형식이 올바르지 않습니다.', 'error')
                 return redirect(url_for('admin.block_time'))
             
             blocked_time = BlockedTime(
@@ -148,7 +148,7 @@ def block_time():
             db.session.add(blocked_time)
             db.session.commit()
             
-            flash('시간이 차단되었습니다.')
+            flash('시간이 차단되었습니다.', 'success')
             return redirect(url_for('admin.block_time'))
     
     # 캘린더에 표시할 데이터 준비
@@ -195,7 +195,7 @@ def unblock_time(block_id):
     blocked_time = BlockedTime.query.get_or_404(block_id)
     db.session.delete(blocked_time)
     db.session.commit()
-    flash('차단된 시간이 해제되었습니다.')
+    flash('차단된 시간이 해제되었습니다.', 'success')
     return redirect(url_for('admin.block_time'))
 
 @admin_bp.route('/stats')
@@ -244,7 +244,7 @@ def delete_user(user_id):
     
     # 관리자 계정은 삭제할 수 없음
     if user.is_admin:
-        flash('관리자 계정은 삭제할 수 없습니다.')
+        flash('관리자 계정은 삭제할 수 없습니다.', 'error')
         return redirect(url_for('admin.manage_users'))
     
     # 회원의 예약 정보를 삭제하거나 업데이트
@@ -258,7 +258,7 @@ def delete_user(user_id):
             break
     
     if has_active_reservations:
-        flash('사용자에게 진행 중이거나 예정된 예약이 있습니다. 예약을 취소하거나 완료한 후 다시 시도해주세요.')
+        flash('사용자에게 진행 중이거나 예정된 예약이 있습니다. 예약을 취소하거나 완료한 후 다시 시도해주세요.', 'error')
         return redirect(url_for('admin.manage_users'))
     
     # 사용자 삭제 처리
@@ -270,9 +270,9 @@ def delete_user(user_id):
         # 사용자 삭제
         db.session.delete(user)
         db.session.commit()
-        flash(f'사용자 {user.name}({user.student_id})이(가) 삭제되었습니다.')
+        flash(f'사용자 {user.name}({user.student_id})이(가) 삭제되었습니다.', 'success')
     except Exception as e:
         db.session.rollback()
-        flash(f'사용자 삭제 중 오류가 발생했습니다: {str(e)}')
+        flash(f'사용자 삭제 중 오류가 발생했습니다: {str(e)}', 'error')
     
     return redirect(url_for('admin.manage_users'))
