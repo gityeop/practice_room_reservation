@@ -47,9 +47,11 @@
                             <input type="text" class="form-control" id="batch-reason" 
                                 placeholder="수업, 회의 등" required>
                         </div>
-                        <button type="submit" class="btn btn-primary btn-block mt-3" id="save-blocks">
-                            선택한 시간 차단하기
-                        </button>
+                        <div class="btn-center-container">
+                            <button type="submit" class="btn btn-primary mt-3" id="save-blocks">
+                                선택한 시간 차단하기
+                            </button>
+                        </div>
                     </form>
                 </div>
             </div>
@@ -78,7 +80,9 @@
                             <input type="text" class="form-control" id="reason" name="reason" 
                                 placeholder="수업, 회의 등" required>
                         </div>
-                        <button type="submit" class="btn btn-secondary btn-block mt-3">단일 시간 차단하기</button>
+                        <div class="btn-center-container">
+                            <button type="submit" class="btn btn-secondary mt-3">단일 시간 차단하기</button>
+                        </div>
                     </form>
                 </div>
             </div>
@@ -112,7 +116,7 @@
                                         <td>{{ block.start_time.strftime('%H:%M') }}</td>
                                         <td>{{ block.end_time.strftime('%H:%M') }}</td>
                                         <td>{{ block.reason }}</td>
-                                        <td>
+                                        <td class="center-cell">
                                             <form action="{{ url_for('admin.unblock_time', block_id=block.id) }}" method="post">
                                                 <button type="submit" class="btn btn-danger btn-sm">차단 해제</button>
                                             </form>

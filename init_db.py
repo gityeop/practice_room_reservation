@@ -1,11 +1,15 @@
 from app import app, db
 from models import User
 from config import Config
+from flask_migrate import Migrate
 
 # 데이터베이스 초기화 함수
 def initialize_database():
     """데이터베이스를 초기화하고 관리자 계정을 생성합니다."""
     with app.app_context():
+        # 마이그레이션 설정
+        migrate = Migrate(app, db)
+        
         # 기존 데이터베이스 삭제
         print("기존 데이터베이스 삭제 중...")
         db.drop_all()
@@ -16,15 +20,22 @@ def initialize_database():
         
         # 관리자 계정 생성
         print("관리자 계정 생성 중...")
-        admin = User(
-            name="관리자",
-            student_id=Config.ADMIN_USERNAME,
-            department="관리자",
-            is_admin=True
-        )
-        admin.set_password(Config.ADMIN_PASSWORD)
-        db.session.add(admin)
-        db.session.commit()
+        try:
+            admin = User(
+                name="관리자",
+                student_id=Config.ADMIN_USERNAME,
+                department="관리자",
+                is_admin=True,
+                token=None,
+                token_expiration=None
+            )
+            admin.set_password(Config.ADMIN_PASSWORD)
+            db.session.add(admin)
+            db.session.commit()
+            print("관리자 계정 생성 완료!")
+        except Exception as e:
+            print(f"관리자 계정 생성 중 오류 발생: {e}")
+            db.session.rollback()
         
         print("데이터베이스 초기화 완료!")
         print(f"관리자 로그인 정보: {Config.ADMIN_USERNAME} / {Config.ADMIN_PASSWORD}")
