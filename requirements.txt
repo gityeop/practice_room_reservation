@@ -1,0 +1,26 @@
+# Lab Reservation System 패키지 의존성
+
+# 웹 프레임워크
+Flask==2.3.3
+
+# 인증 및 사용자 관리
+Flask-Login==0.6.2
+
+# 데이터베이스 ORM
+Flask-SQLAlchemy==3.1.1
+SQLAlchemy==2.0.20
+
+# 보안 관련
+Werkzeug==2.3.7
+
+# 환경 변수 관리
+python-dotenv==1.0.0
+
+# 날짜/시간 처리
+pytz==2023.3
+
+# 운영 환경을 위한 WSGI HTTP 서버
+gunicorn==21.2.0
+
+# 개발 환경
+flask-debugtoolbar==0.13.1

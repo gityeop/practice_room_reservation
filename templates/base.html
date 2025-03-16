@@ -19,17 +19,17 @@
                 <ul>
                     {% if current_user.is_authenticated %}
                         {% if current_user.is_admin %}
-                            <li><a href="{{ url_for('admin.dashboard') }}">관리자 대시보드</a></li>
-                            <li><a href="{{ url_for('admin.block_time') }}">시간 차단</a></li>
-                            <li><a href="{{ url_for('admin.stats') }}">통계</a></li>
+                            <li><button class="nav-button" onclick="window.location.href='{{ url_for('admin.dashboard') }}'">관리자 대시보드</button></li>
+                            <li><button class="nav-button" onclick="window.location.href='{{ url_for('admin.block_time') }}'">시간 차단</button></li>
+                            <li><button class="nav-button" onclick="window.location.href='{{ url_for('admin.stats') }}'">통계</button></li>
                         {% else %}
-                            <li><a href="{{ url_for('reservation.dashboard') }}">내 예약</a></li>
-                            <li><a href="{{ url_for('reservation.reserve') }}">예약하기</a></li>
+                            <li><button class="nav-button" onclick="window.location.href='{{ url_for('reservation.dashboard') }}'">내 예약</button></li>
+                            <li><button class="nav-button" onclick="window.location.href='{{ url_for('reservation.reserve') }}'">예약하기</button></li>
                         {% endif %}
-                        <li><a href="{{ url_for('auth.logout') }}">로그아웃</a></li>
+                        <li><button class="nav-button logout" onclick="window.location.href='{{ url_for('auth.logout') }}'">로그아웃</button></li>
                     {% else %}
-                        <li><a href="{{ url_for('auth.login') }}">로그인</a></li>
-                        <li><a href="{{ url_for('auth.register') }}">회원가입</a></li>
+                        <li><button class="nav-button" onclick="window.location.href='{{ url_for('auth.login') }}'">로그인</button></li>
+                        <li><button class="nav-button" onclick="window.location.href='{{ url_for('auth.register') }}'">회원가입</button></li>
                     {% endif %}
                 </ul>
             </nav>

@@ -2,25 +2,26 @@
 
 {% block content %}
 <div class="auth-split-layout">
-    <div class="auth-form-container">
+    <div class="auth-form-container" style="width: 100%; padding: var(--spacing-xl) 2rem;">
         <h2>회원가입</h2>
         
-        <form action="{{ url_for('auth.register') }}" method="post" id="registerForm">
-            <div class="form-group">
+        <form action="{{ url_for('auth.register') }}" method="post" id="registerForm" style="width: 100%;">
+            <div class="form-group" style="width: 100%;">
                 <label for="name">이름</label>
-                <input type="text" id="name" name="name" class="form-control" required>
+                <input type="text" id="name" name="name" class="form-control" required style="width: 100%; box-sizing: border-box;">
             </div>
             
-            <div class="form-group student-id-container">
+            <div class="form-group student-id-container" style="width: 100%;">
                 <label for="student_id">학번</label>
-                <input type="text" id="student_id" name="student_id" class="form-control" required>
+                <input type="text" id="student_id" name="student_id" class="form-control" required style="width: 100%; box-sizing: border-box;" maxlength="9" pattern="[0-9]{9}" title="학번은 반드시 9자리 숫자이어야 합니다.">
                 <div class="spinner" id="studentIdSpinner"></div>
                 <div class="student-id-message" id="studentIdMessage"></div>
+                <div class="password-error" id="studentIdLengthError">학번은 반드시 9자리 숫자이어야 합니다.</div>
             </div>
             
-            <div class="form-group">
+            <div class="form-group" style="width: 100%;">
                 <label for="major">학과</label>
-                <select id="major" name="major" class="form-control" required>
+                <select id="major" name="major" class="form-control" required style="width: 100%; box-sizing: border-box;">
                     <option value="">학과를 선택해주세요</option>
                     <option value="국어국문학과">국어국문학과</option>
                     <option value="문화콘텐츠학과">문화콘텐츠학과</option>
@@ -33,25 +34,20 @@
                 </select>
             </div>
             
-            <div class="form-group">
-                <label for="email">이메일</label>
-                <input type="email" id="email" name="email" class="form-control" required>
-            </div>
-            
-            <div class="form-group">
+            <div class="form-group" style="width: 100%;">
                 <label for="password">비밀번호</label>
-                <input type="password" id="password" name="password" class="form-control" required>
+                <input type="password" id="password" name="password" class="form-control" required style="width: 100%; box-sizing: border-box;">
                 <div class="password-error" id="passwordError">비밀번호는 8자 이상이어야 합니다.</div>
             </div>
             
-            <div class="form-group">
+            <div class="form-group" style="width: 100%;">
                 <label for="password2">비밀번호 확인</label>
-                <input type="password" id="password2" name="password2" class="form-control" required>
+                <input type="password" id="password2" name="password2" class="form-control" required style="width: 100%; box-sizing: border-box;">
                 <div class="password-error" id="passwordMatchError">비밀번호가 일치하지 않습니다.</div>
             </div>
             
-            <div class="form-group">
-                <button type="submit" class="btn btn-primary">회원가입</button>
+            <div class="form-group" style="width: 100%;">
+                <button type="submit" class="btn btn-primary" style="width: 100%;">회원가입</button>
             </div>
         </form>
         
@@ -61,28 +57,9 @@
     </div>
     
     <div class="auth-image-container">
-        <div class="auth-image-grid">
-            <!-- SVG 캐릭터 이미지들 -->
-            <img src="{{ url_for('static', filename='images/characters/char1.svg') }}" alt="캐릭터 이미지">
-            <img src="{{ url_for('static', filename='images/characters/char2.svg') }}" alt="캐릭터 이미지">
-            <img src="{{ url_for('static', filename='images/characters/char3.svg') }}" alt="캐릭터 이미지">
-            <img src="{{ url_for('static', filename='images/characters/char4.svg') }}" alt="캐릭터 이미지">
-            <img src="{{ url_for('static', filename='images/characters/char5.svg') }}" alt="캐릭터 이미지">
-            <img src="{{ url_for('static', filename='images/characters/char6.svg') }}" alt="캐릭터 이미지">
-            <img src="{{ url_for('static', filename='images/characters/char7.svg') }}" alt="캐릭터 이미지">
-            <img src="{{ url_for('static', filename='images/characters/char8.svg') }}" alt="캐릭터 이미지">
-            <img src="{{ url_for('static', filename='images/characters/char9.svg') }}" alt="캐릭터 이미지">
-            <img src="{{ url_for('static', filename='images/characters/char10.svg') }}" alt="캐릭터 이미지">
-            <img src="{{ url_for('static', filename='images/characters/char11.svg') }}" alt="캐릭터 이미지">
-            <img src="{{ url_for('static', filename='images/characters/char1.svg') }}" alt="캐릭터 이미지">
-            <img src="{{ url_for('static', filename='images/characters/char2.svg') }}" alt="캐릭터 이미지">
-            <img src="{{ url_for('static', filename='images/characters/char3.svg') }}" alt="캐릭터 이미지">
-            <img src="{{ url_for('static', filename='images/characters/char4.svg') }}" alt="캐릭터 이미지">
-            <img src="{{ url_for('static', filename='images/characters/char5.svg') }}" alt="캐릭터 이미지">
-            <img src="{{ url_for('static', filename='images/characters/char6.svg') }}" alt="캐릭터 이미지">
-            <img src="{{ url_for('static', filename='images/characters/char7.svg') }}" alt="캐릭터 이미지">
-            <img src="{{ url_for('static', filename='images/characters/char8.svg') }}" alt="캐릭터 이미지">
-            <img src="{{ url_for('static', filename='images/characters/char9.svg') }}" alt="캐릭터 이미지">
+        <div class="auth-image-grid" style="display: flex; align-items: center; justify-content: flex-end; width: 100%; height: 100%;">
+            <!-- 로그인 페이지 대표 이미지 -->
+            <img src="{{ url_for('static', filename='images/characters/login_image.png') }}" alt="로그인 이미지" style="width: 100%; height: 100%; object-fit: contain;">
         </div>
     </div>
 </div>
@@ -97,6 +74,7 @@
     const studentIdInput = document.getElementById('student_id');
     const studentIdMessage = document.getElementById('studentIdMessage');
     const studentIdSpinner = document.getElementById('studentIdSpinner');
+    const studentIdLengthError = document.getElementById('studentIdLengthError');
     
     // 비밀번호 확인
     function validatePasswords() {
@@ -125,7 +103,17 @@
         if (studentId.length === 0) {
             studentIdMessage.textContent = '';
             studentIdMessage.className = 'student-id-message';
+            studentIdLengthError.classList.remove('show');
             return;
+        }
+        
+        // 학번은 9자리 숫자인지 확인
+        const numberPattern = /^[0-9]{9}$/;
+        if (!numberPattern.test(studentId)) {
+            studentIdLengthError.classList.add('show');
+            return;
+        } else {
+            studentIdLengthError.classList.remove('show');
         }
         
         studentIdSpinner.style.display = 'inline-block';
@@ -163,6 +151,7 @@
         studentIdMessage.textContent = '';
         studentIdMessage.className = 'student-id-message';
         studentIdSpinner.style.display = 'none';
+        studentIdLengthError.classList.remove('show');
         
         clearTimeout(timeout);
         timeout = setTimeout(() => {
@@ -182,7 +171,7 @@
         }
         
         // 학번 확인 결과가 없으면 제출 방지
-        if (studentIdMessage.className.includes('invalid')) {
+        if (studentIdMessage.className.includes('invalid') || studentIdLengthError.classList.contains('show')) {
             event.preventDefault();
             return false;
         }

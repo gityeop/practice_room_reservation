@@ -6,12 +6,16 @@ from models import db, User
 from routes.auth import auth_bp
 from routes.reservation import reservation_bp
 from routes.admin import admin_bp
+from flask_migrate import Migrate
 
 app = Flask(__name__)
 app.config.from_object(Config)
 
 # 데이터베이스 초기화
 db.init_app(app)
+
+# 마이그레이션 설정
+migrate = Migrate(app, db)
 
 # 로그인 관리자 설정
 login_manager = LoginManager()
@@ -29,20 +33,25 @@ app.register_blueprint(admin_bp)
 
 # 데이터베이스 생성 및 관리자 계정 생성
 with app.app_context():
+    # 새 칼럼 추가 위해 db.create_all() 실행
     db.create_all()
     
-    # 관리자 계정이 없으면 생성
-    admin = User.query.filter_by(is_admin=True).first()
-    if not admin:
-        admin = User(
-            name="관리자",
-            student_id=Config.ADMIN_USERNAME,
-            department="관리자",
-            is_admin=True
-        )
-        admin.set_password(Config.ADMIN_PASSWORD)
-        db.session.add(admin)
-        db.session.commit()
+    # 관리자 계정이 없으면 생성 (token 필드 오류 방지)
+    try:
+        admin = User.query.filter_by(is_admin=True).first()
+        if not admin:
+            admin = User(
+                name="관리자",
+                student_id=Config.ADMIN_USERNAME,
+                department="관리자",
+                is_admin=True
+            )
+            admin.set_password(Config.ADMIN_PASSWORD)
+            db.session.add(admin)
+            db.session.commit()
+    except Exception as e:
+        print(f"관리자 계정 확인 중 오류 발생: {e}")
+        # 데이터베이스 스키마 변경 후 재시도 필요
 
 # 애플리케이션 설정 완료 메시지
 print('Lab Reservation System initialized!')

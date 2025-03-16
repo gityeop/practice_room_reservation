@@ -2,35 +2,6 @@
 
 {% block content %}
 <style>
-    /* 캘린더 드래그 선택 스타일 */
-    .fc-highlight {
-        background-color: rgba(0, 123, 255, 0.3) !important;
-        border: 2px dashed #007bff !important;
-    }
-    
-    /* 임시 선택된 이벤트 스타일 */
-    .temp-selection {
-        border: 2px solid #fff !important;
-        box-shadow: 0 0 10px rgba(0, 123, 255, 0.5) !important;
-    }
-    
-    /* 버튼 애니메이션 효과 */
-    .btn-pulse {
-        animation: pulse 1.5s infinite;
-    }
-    
-    @keyframes pulse {
-        0% {
-            box-shadow: 0 0 0 0 rgba(0, 123, 255, 0.7);
-        }
-        70% {
-            box-shadow: 0 0 0 10px rgba(0, 123, 255, 0);
-        }
-        100% {
-            box-shadow: 0 0 0 0 rgba(0, 123, 255, 0);
-        }
-    }
-    
     /* 선택 정보 강조 */
     .selected-info-highlight {
         background-color: #f8f9fa;
@@ -220,10 +191,10 @@
             // 날짜 클릭 이벤트 추가 - 클릭하면 기존 선택 삭제
             dateClick: function(info) {
                 // 기존 선택을 제거
-                removeTemporarySelection();
-                
-                // 캘린더 선택 해제 (드래그 박스 제거)
-                calendar.unselect();
+                if (tempSelectionEvent) {
+                    removeTemporarySelection();
+                    updateReservationForm(null, null, 0);
+                }
             },
             
             eventSources: [
@@ -309,17 +280,6 @@
                 // 예약 폼 업데이트
                 updateReservationForm(start, end, durationHours);
                 
-                // 선택한 시간 시각화 - 이벤트 추가 및 참조 저장
-                tempSelectionEvent = calendar.addEvent({
-                    title: '예약 선택됨',
-                    start: start,
-                    end: end,
-                    backgroundColor: '#007bff',
-                    textColor: '#ffffff',
-                    classNames: ['temp-selection'],
-                    durationEditable: false,
-                    startEditable: false
-                });
             }
         });
         
@@ -371,13 +331,6 @@
             // 예약 버튼 활성화 및 스타일 변경
             const submitBtn = document.getElementById('submit-btn');
             submitBtn.disabled = false;
-            submitBtn.classList.add('btn-pulse'); // 애니메이션 효과 추가
-            
-            // 3초 후 패스 효과 제거
-            setTimeout(() => {
-                submitBtn.classList.remove('btn-pulse');
-            }, 3000);
-            
             // 임시 선택 이벤트 추가 후 저장
             tempSelectionEvent = calendar.addEvent({
                 title: '예약 선택됨',
