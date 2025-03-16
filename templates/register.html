@@ -1,262 +1,191 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<style>
-    /* 폼 크기와 중앙 정렬 스타일 */
-    .auth-form {
-        max-width: 700px;
-        margin: 0 auto;
-        padding-top: 65px;
-        background-color: transparent;
-        border-radius: 8px;
-        box-shadow: none;
-    }
-    
-    /* 드롭다운 화살표 강조 */
-    select.form-control {
-        background-color: #fff;
-        background-image: url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 4 5'%3E%3Cpath fill='%23343a40' d='M2 0L0 2h4zm0 5L0 3h4z'/%3E%3C/svg%3E");
-        background-repeat: no-repeat;
-        background-position: right .75rem center;
-        background-size: 8px 10px;
-        padding-right: 1.5rem;
-    }
-    
-    /* 입력 필드 스타일 개선 */
-    .form-group {
-        margin-bottom: 15px;
-    }
-    
-    .form-group label {
-        display: block;
-        margin-bottom: 5px;
-        font-weight: 500;
-    }
-    
-    .form-group input, .form-group select {
-        width: 100%;
-        padding: 8px 12px;
-        border: 1px solid #ced4da;
-        border-radius: 4px;
-    }
-    
-    .form-group button {
-        width: 100%;
-        padding: 10px;
-        background-color: #007bff;
-        color: white;
-        border: none;
-        border-radius: 4px;
-        cursor: pointer;
-        transition: background-color 0.3s;
-    }
-    
-    .form-group button:hover {
-        background-color: #0069d9;
-    }
-    
-    /* 오류 메시지 스타일 */
-    .password-error {
-        color: #dc3545;
-        font-size: 0.85rem;
-        margin-top: 5px;
-        display: none;
-    }
-    
-    /* 학번 확인 메시지 스타일 */
-    .student-id-message {
-        font-size: 0.85rem;
-        margin-top: 5px;
-        display: none;
-    }
-    
-    .student-id-message.valid {
-        color: #28a745;
-        display: block;
-    }
-    
-    .student-id-message.invalid {
-        color: #dc3545;
-        display: block;
-    }
-    
-    .spinner {
-        display: none;
-        width: 16px;
-        height: 16px;
-        border: 2px solid #f3f3f3;
-        border-top: 2px solid #3498db;
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
-        margin-left: 10px;
-    }
-    
-    @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-    }
-    
-    .student-id-container {
-        position: relative;
-    }
-    
-    .student-id-container .spinner {
-        position: absolute;
-        right: 12px;
-        top: 12px;
-    }
-</style>
-<div class="auth-form">
-    <h2>회원가입</h2>
-    <form action="{{ url_for('auth.register') }}" method="post" id="registerForm">
-        <div class="form-group">
-            <label for="name">이름</label>
-            <input type="text" id="name" name="name" class="form-control" required>
-        </div>
-        <div class="form-group">
-            <label for="student_id">학번</label>
-            <div class="student-id-container">
+<div class="auth-split-layout">
+    <div class="auth-form-container">
+        <h2>회원가입</h2>
+        
+        <form action="{{ url_for('auth.register') }}" method="post" id="registerForm">
+            <div class="form-group">
+                <label for="name">이름</label>
+                <input type="text" id="name" name="name" class="form-control" required>
+            </div>
+            
+            <div class="form-group student-id-container">
+                <label for="student_id">학번</label>
                 <input type="text" id="student_id" name="student_id" class="form-control" required>
                 <div class="spinner" id="studentIdSpinner"></div>
+                <div class="student-id-message" id="studentIdMessage"></div>
             </div>
-            <div id="studentIdMessage" class="student-id-message"></div>
+            
+            <div class="form-group">
+                <label for="major">학과</label>
+                <select id="major" name="major" class="form-control" required>
+                    <option value="">학과를 선택해주세요</option>
+                    <option value="국어국문학과">국어국문학과</option>
+                    <option value="문화콘텐츠학과">문화콘텐츠학과</option>
+                    <option value="미디어커뮤니케이션학과">미디어커뮤니케이션학과</option>
+                    <option value="사학과">사학과</option>
+                    <option value="영어영문학과">영어영문학과</option>
+                    <option value="중어중문학과">중어중문학과</option>
+                    <option value="지리학과">지리학과</option>
+                    <option value="철학과">철학과</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="email">이메일</label>
+                <input type="email" id="email" name="email" class="form-control" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="password">비밀번호</label>
+                <input type="password" id="password" name="password" class="form-control" required>
+                <div class="password-error" id="passwordError">비밀번호는 8자 이상이어야 합니다.</div>
+            </div>
+            
+            <div class="form-group">
+                <label for="password2">비밀번호 확인</label>
+                <input type="password" id="password2" name="password2" class="form-control" required>
+                <div class="password-error" id="passwordMatchError">비밀번호가 일치하지 않습니다.</div>
+            </div>
+            
+            <div class="form-group">
+                <button type="submit" class="btn btn-primary">회원가입</button>
+            </div>
+        </form>
+        
+        <div class="auth-links">
+            <p>이미 계정이 있으신가요? <a href="{{ url_for('auth.login') }}">로그인</a></p>
         </div>
-        <div class="form-group">
-            <label for="department">학과</label>
-            <select id="department" name="department" class="form-control" required>
-                <option value="" disabled selected>학과를 선택해주세요</option>
-                <option value="국어국문학과">국어국문학과</option>
-                <option value="문화콘텐츠학과">문화콘텐츠학과</option>
-                <option value="미디어커뮤니케이션학과">미디어커뮤니케이션학과</option>
-                <option value="사학과">사학과</option>
-                <option value="영어영문학과">영어영문학과</option>
-                <option value="중어중문학과">중어중문학과</option>
-                <option value="지리학과">지리학과</option>
-                <option value="철학과">철학과</option>
-            </select>
+    </div>
+    
+    <div class="auth-image-container">
+        <div class="auth-image-grid">
+            <!-- SVG 캐릭터 이미지들 -->
+            <img src="{{ url_for('static', filename='images/characters/char1.svg') }}" alt="캐릭터 이미지">
+            <img src="{{ url_for('static', filename='images/characters/char2.svg') }}" alt="캐릭터 이미지">
+            <img src="{{ url_for('static', filename='images/characters/char3.svg') }}" alt="캐릭터 이미지">
+            <img src="{{ url_for('static', filename='images/characters/char4.svg') }}" alt="캐릭터 이미지">
+            <img src="{{ url_for('static', filename='images/characters/char5.svg') }}" alt="캐릭터 이미지">
+            <img src="{{ url_for('static', filename='images/characters/char6.svg') }}" alt="캐릭터 이미지">
+            <img src="{{ url_for('static', filename='images/characters/char7.svg') }}" alt="캐릭터 이미지">
+            <img src="{{ url_for('static', filename='images/characters/char8.svg') }}" alt="캐릭터 이미지">
+            <img src="{{ url_for('static', filename='images/characters/char9.svg') }}" alt="캐릭터 이미지">
+            <img src="{{ url_for('static', filename='images/characters/char10.svg') }}" alt="캐릭터 이미지">
+            <img src="{{ url_for('static', filename='images/characters/char11.svg') }}" alt="캐릭터 이미지">
+            <img src="{{ url_for('static', filename='images/characters/char1.svg') }}" alt="캐릭터 이미지">
+            <img src="{{ url_for('static', filename='images/characters/char2.svg') }}" alt="캐릭터 이미지">
+            <img src="{{ url_for('static', filename='images/characters/char3.svg') }}" alt="캐릭터 이미지">
+            <img src="{{ url_for('static', filename='images/characters/char4.svg') }}" alt="캐릭터 이미지">
+            <img src="{{ url_for('static', filename='images/characters/char5.svg') }}" alt="캐릭터 이미지">
+            <img src="{{ url_for('static', filename='images/characters/char6.svg') }}" alt="캐릭터 이미지">
+            <img src="{{ url_for('static', filename='images/characters/char7.svg') }}" alt="캐릭터 이미지">
+            <img src="{{ url_for('static', filename='images/characters/char8.svg') }}" alt="캐릭터 이미지">
+            <img src="{{ url_for('static', filename='images/characters/char9.svg') }}" alt="캐릭터 이미지">
         </div>
-        <div class="form-group">
-            <label for="password">비밀번호</label>
-            <input type="password" id="password" name="password" class="form-control" required>
-        </div>
-        <div class="form-group">
-            <label for="password_confirm">비밀번호 확인</label>
-            <input type="password" id="password_confirm" name="password_confirm" class="form-control" required>
-            <div id="passwordError" class="password-error">비밀번호가 일치하지 않습니다.</div>
-        </div>
-        <div class="form-group">
-            <button type="submit" class="btn btn-primary" id="registerButton">회원가입</button>
-        </div>
-    </form>
-    <p>이미 계정이 있으신가요? <a href="{{ url_for('auth.login') }}">로그인</a></p>
+    </div>
 </div>
 
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const registerForm = document.getElementById('registerForm');
-        const passwordInput = document.getElementById('password');
-        const passwordConfirmInput = document.getElementById('password_confirm');
-        const passwordError = document.getElementById('passwordError');
-        const registerButton = document.getElementById('registerButton');
-        const studentIdInput = document.getElementById('student_id');
-        const studentIdMessage = document.getElementById('studentIdMessage');
-        const studentIdSpinner = document.getElementById('studentIdSpinner');
+    // 비밀번호 확인
+    const registerForm = document.getElementById('registerForm');
+    const passwordInput = document.getElementById('password');
+    const password2Input = document.getElementById('password2');
+    const passwordError = document.getElementById('passwordError');
+    const passwordMatchError = document.getElementById('passwordMatchError');
+    const studentIdInput = document.getElementById('student_id');
+    const studentIdMessage = document.getElementById('studentIdMessage');
+    const studentIdSpinner = document.getElementById('studentIdSpinner');
+    
+    // 비밀번호 확인
+    function validatePasswords() {
+        const password = passwordInput.value;
+        const password2 = password2Input.value;
         
-        // 학번 확인 결과
-        let studentIdValid = false;
-        let studentIdTimer = null;
-        
-        function validatePasswords() {
-            if (passwordInput.value !== passwordConfirmInput.value) {
-                passwordError.style.display = 'block';
-                return false;
-            } else {
-                passwordError.style.display = 'none';
-                return true;
-            }
+        // 비밀번호 길이 확인
+        if (password.length < 8) {
+            passwordError.classList.add('show');
+        } else {
+            passwordError.classList.remove('show');
         }
         
-        // 학번 확인
-        function checkStudentId() {
-            const studentId = studentIdInput.value.trim();
-            
-            if (!studentId) {
-                studentIdMessage.textContent = '';
-                studentIdMessage.className = 'student-id-message';
-                studentIdValid = false;
-                return;
-            }
-            
-            // 로딩 표시
-            studentIdSpinner.style.display = 'inline-block';
-            
-            // XMLHttpRequest 대신 fetch API 사용
-            const formData = new FormData();
-            formData.append('student_id', studentId);
-            
-            fetch('{{ url_for("auth.check_student_id") }}', {
-                method: 'POST',
-                body: formData
-            })
+        // 비밀번호 일치 확인
+        if (password !== password2 && password2.length > 0) {
+            passwordMatchError.classList.add('show');
+        } else {
+            passwordMatchError.classList.remove('show');
+        }
+    }
+    
+    // 학번 확인
+    function checkStudentId() {
+        const studentId = studentIdInput.value.trim();
+        
+        if (studentId.length === 0) {
+            studentIdMessage.textContent = '';
+            studentIdMessage.className = 'student-id-message';
+            return;
+        }
+        
+        studentIdSpinner.style.display = 'inline-block';
+        
+        // AJAX 요청
+        fetch('/auth/check_student_id?student_id=' + studentId)
             .then(response => response.json())
             .then(data => {
                 studentIdSpinner.style.display = 'none';
                 
                 if (data.exists) {
-                    studentIdMessage.textContent = data.message;
+                    studentIdMessage.textContent = '이미 사용 중인 학번입니다.';
                     studentIdMessage.className = 'student-id-message invalid';
-                    studentIdValid = false;
                 } else {
-                    studentIdMessage.textContent = data.message;
+                    studentIdMessage.textContent = '사용 가능한 학번입니다.';
                     studentIdMessage.className = 'student-id-message valid';
-                    studentIdValid = true;
                 }
             })
             .catch(error => {
                 studentIdSpinner.style.display = 'none';
                 console.error('Error:', error);
             });
+    }
+    
+    // 비밀번호 입력 시 확인
+    passwordInput.addEventListener('input', validatePasswords);
+    password2Input.addEventListener('input', validatePasswords);
+    
+    // 학번 입력 시 확인
+    studentIdInput.addEventListener('blur', checkStudentId);
+    
+    // 학번 입력 시 확인 (0.5초 지연)
+    let timeout = null;
+    studentIdInput.addEventListener('input', function() {
+        studentIdMessage.textContent = '';
+        studentIdMessage.className = 'student-id-message';
+        studentIdSpinner.style.display = 'none';
+        
+        clearTimeout(timeout);
+        timeout = setTimeout(() => {
+            checkStudentId();
+        }, 500);
+    });
+    
+    // 폼 제출 시 확인
+    registerForm.addEventListener('submit', function(event) {
+        const password = passwordInput.value;
+        const password2 = password2Input.value;
+        
+        if (password.length < 8 || password !== password2) {
+            event.preventDefault();
+            validatePasswords();
+            return false;
         }
         
-        // 학번 입력 시 확인 (0.5초 지연)
-        studentIdInput.addEventListener('input', function() {
-            studentIdMessage.textContent = '';
-            studentIdMessage.className = 'student-id-message';
-            studentIdValid = false;
-            
-            if (studentIdTimer) {
-                clearTimeout(studentIdTimer);
-            }
-            
-            studentIdTimer = setTimeout(checkStudentId, 500);
-        });
-        
-        // 학번 입력 필드에서 포커스 아웃 시 확인
-        studentIdInput.addEventListener('blur', checkStudentId);
-        
-        // 비밀번호 확인 필드 입력 시 검증
-        passwordConfirmInput.addEventListener('input', validatePasswords);
-        passwordInput.addEventListener('input', function() {
-            if (passwordConfirmInput.value) {
-                validatePasswords();
-            }
-        });
-        
-        // 폼 제출 시 검증
-        registerForm.addEventListener('submit', function(event) {
-            const passwordValid = validatePasswords();
-            
-            // 학번 확인 결과가 없거나 비밀번호가 일치하지 않으면 제출 방지
-            if (!passwordValid || !studentIdValid) {
-                event.preventDefault(); // 폼 제출 방지
-                
-                if (!studentIdValid) {
-                    studentIdMessage.textContent = '학번을 다시 확인해주세요.';
-                    studentIdMessage.className = 'student-id-message invalid';
-                    studentIdInput.focus();
-                }
-            }
-        });
+        // 학번 확인 결과가 없으면 제출 방지
+        if (studentIdMessage.className.includes('invalid')) {
+            event.preventDefault();
+            return false;
+        }
     });
 </script>
 {% endblock %}
