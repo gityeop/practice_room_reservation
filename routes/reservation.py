@@ -24,12 +24,24 @@ def reserve():
         
     # 현재 날짜와 시간
     now = datetime.now()
-    is_saturday = now.weekday() == 5  # 토요일
-    is_sunday = now.weekday() == 6    # 일요일
-    is_culture_content = current_user.department == Config.CULTURE_CONTENT_DEPT
     
-    # 예약 가능 시간 확인 (10AM-10PM)
-    is_booking_time = 10 <= now.hour < 24
+    # 테스트 모드
+    TEST_MODE = True
+    
+    if TEST_MODE:
+        # 테스트 모드일 때는 항상 예약 가능
+        is_saturday = True
+        is_sunday = True
+        is_culture_content = True
+        is_booking_time = True
+    else:
+        # 일반 모드일 때는 실제 날짜와 시간을 확인
+        is_saturday = now.weekday() == 5  # 토요일
+        is_sunday = now.weekday() == 6    # 일요일
+        is_culture_content = current_user.department == Config.CULTURE_CONTENT_DEPT
+        
+        # 예약 가능 시간 확인 (10AM-10PM)
+        is_booking_time = 10 <= now.hour < 24
     
     # 예약 가능 여부 확인 (수정됨)
     # 일요일: 다음 주의 모든 날짜를 예약 가능

@@ -36,6 +36,7 @@
     
     /* 타이포그래피 */
     --font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    --font-family-alt: 'SEBANG Gothic','Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     --font-size-xs: 0.75rem;         /* 12px */
     --font-size-sm: 0.875rem;        /* 14px */
     --font-size-md: 1rem;            /* 16px */
@@ -96,7 +97,7 @@ h1, h2, h3, h4, h5, h6 {
 
 h1 {
     font-size: var(--font-size-3xl);
-    margin-top: var(--spacing-md);
+    margin-top: var(--spacing-lg);
 }
 
 h2 {
@@ -169,6 +170,10 @@ header .container {
     height: 70px;
 }
 
+header .container h1 {
+    font-family: var(--font-family-alt);
+
+}
 .logo {
     font-size: var(--font-size-xl);
     font-weight: 700;
@@ -682,7 +687,7 @@ label {
 .mt-4 { margin-top: var(--spacing-lg); margin-bottom: var(--spacing-lg); }
 .mt-5 { margin-top: var(--spacing-xl); }
 
-.mb-0 { margin-bottom: 0; }
+.mb-0 { margin-bottom: 0; border: 0;}
 .mb-1 { margin-bottom: var(--spacing-xs); }
 .mb-2 { margin-bottom: var(--spacing-sm); }
 .mb-3 { margin-bottom: var(--spacing-md); }
@@ -902,6 +907,14 @@ label {
     margin-bottom: var(--spacing-lg) !important;
 }
 
+.fc-scroller {
+    -ms-overflow-style: none;  /* IE 및 Edge */
+    scrollbar-width: none;  /* Firefox */
+}
+
+.fc-scroller::-webkit-scrollbar {
+    display: none; /* Chrome, Safari */
+}
 .fc-event {
     border-radius: var(--radius-sm) !important;
     border: none !important;
@@ -955,7 +968,10 @@ label {
     border: var(--border-dark);
     border-radius: var(--radius-md);
 }
-
+.fc-theme-standard:last-child td, .fc-theme-standard:last-child th {
+    border-bottom: none;
+    border-right: none;
+}
 /* 차단됨: 수업 (원래 rgb(217, 83, 79) 적용) */
 .fc-timegrid-event[style*="rgb(217, 83, 79)"] {
     border-color: var(--color-dark) !important;       /* 원하는 색상으로 변경 */
@@ -1328,6 +1344,7 @@ select.form-control::-ms-expand {
     background-color: var(--color-error-light) !important;
 }
 
+
 /* uad00ub9acuc790 ud398uc774uc9c0 ubc84ud2bc uc911uc559 uc815ub82c */
 .btn-center-container {
     display: flex;
@@ -1359,4 +1376,24 @@ select.form-control::-ms-expand {
     color: var(--color-white) !important;
     border-color: var(--color-dark) !important;
     box-shadow: var(--shadow-md);
+}
+
+.alert-info, .dashboard p, .stats-section p, .pending-reservations p, .approved-reservations p, .rejected-reservations p , .canceled-reservations p {
+    background-color: var(--color-white);
+    color: var(--color-dark);
+    border-color: var(--color-dark);
+    transition: all var(--transition-fast);
+    border : var(--border-dark);
+    padding: var(--spacing-md);
+    border-radius: var(--radius-md);
+}
+
+.alert-info:hover, .dashboard p:hover,.stats-section p:hover,.pending-reservations p:hover, .approved-reservations p:hover, .rejected-reservations p:hover , .canceled-reservations p:hover {
+    background-color: var(--color-info-light);
+    color: var(--color-dark);
+    border-color: var(--color-dark);
+    box-shadow: var(--shadow-bold);
+    border : var(--border-dark);
+    padding: var(--spacing-md);
+    border-radius: var(--radius-md);
 }
