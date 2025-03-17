@@ -7,7 +7,19 @@ load_dotenv()
 class Config:
     # 환경 변수에서 비밀 키 가져오기 (없으면 기본값 사용)
     SECRET_KEY = os.environ.get('SECRET_KEY', 'dev-secret-key-replace-in-production')
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URI', 'sqlite:///lab_reservation.db')
+    
+    # DATABASE_URL (환경 변수에서 가져오기) 우선 DATABASE_URI (기존) 사용
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL')
+    
+    # DATABASE_URL이 없으면 DATABASE_URI (기존) 사용
+    if SQLALCHEMY_DATABASE_URI is None:
+        SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URI', 'sqlite:///lab_reservation.db')
+    
+    # Render에서 가져온 DATABASE_URL이 PostgreSQL URL이면 "postgres://"를 "postgresql://"로 변경
+    # SQLAlchemy 1.4부터는 "postgresql://"를 사용해야 함
+    elif SQLALCHEMY_DATABASE_URI.startswith('postgres://'):
+        SQLALCHEMY_DATABASE_URI = SQLALCHEMY_DATABASE_URI.replace('postgres://', 'postgresql://', 1)
+    
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
     # 예약 관련 설정

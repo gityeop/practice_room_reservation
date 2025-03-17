@@ -9,6 +9,8 @@ Flask-Login==0.6.2
 # 데이터베이스 ORM
 Flask-SQLAlchemy==3.1.1
 SQLAlchemy==2.0.20
+psycopg2-binary==2.9.9  # PostgreSQL 어댑터
+Flask-Migrate==4.0.5  # 데이터베이스 마이그레이션
 
 # 보안 관련
 Werkzeug==2.3.7
