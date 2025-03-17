@@ -252,4 +252,87 @@ class SupabaseRepository:
     def delete_blocked_time(self, blocked_time_id: int) -> bool:
         """차단된 시간 삭제"""
         response = self.supabase.table('blocked_times').delete().eq('id', blocked_time_id).execute()
-        return len(response.data) > 0 if response.data else False
+        return len(response.data) > 0
+        
+    def get_department_stats(self) -> List[Dict[str, Any]]:
+        """학과별 예약 통계를 조회
+        
+        Returns:
+            학과별 승인된 예약 건수 통계 목록
+        """
+        # 승인된 예약 데이터 가져오기
+        response = self.supabase.table('reservations')\
+            .select('*,users!inner(department)')\
+            .eq('status', 'approved')\
+            .execute()
+            
+        # 결과가 없으면 빈 리스트 반환
+        if not response.data:
+            return []
+            
+        # 학과별로 데이터 그룹화
+        dept_stats = {}
+        for res in response.data:
+            if 'users' in res and res['users']:
+                dept = res['users'].get('department', '미지정')
+                if not dept:
+                    dept = '미지정'
+                    
+                if dept not in dept_stats:
+                    dept_stats[dept] = 0
+                    
+                dept_stats[dept] += 1
+                
+        # 딕셔너리 형태로 변환
+        result = [
+            {"department": dept, "reservation_count": count}
+            for dept, count in dept_stats.items()
+        ]
+        
+        # 예약 수 기준 내림차순 정렬
+        result.sort(key=lambda x: x["reservation_count"], reverse=True)
+        
+        return result
+    
+    def get_hour_stats(self) -> List[Dict[str, Any]]:
+        """시간대별 예약 통계를 조회
+        
+        Returns:
+            시간대별 승인된 예약 건수 통계 목록
+        """
+        # 승인된 예약 데이터 가져오기
+        response = self.supabase.table('reservations')\
+            .select('*')\
+            .eq('status', 'approved')\
+            .execute()
+            
+        # 결과가 없으면 빈 리스트 반환
+        if not response.data:
+            return []
+            
+        # 시간대별로 데이터 그룹화
+        hour_stats = {}
+        for res in response.data:
+            # 시작 시간 문자열에서 시간 추출 (예: "09:00:00" -> 9)
+            start_time = res.get('start_time', '')
+            if start_time and ':' in start_time:
+                try:
+                    hour = int(start_time.split(':')[0])
+                    if hour not in hour_stats:
+                        hour_stats[hour] = 0
+                        
+                    hour_stats[hour] += 1
+                except (ValueError, IndexError):
+                    # 시간 형식이 잘못된 경우 무시
+                    pass
+                
+        # 딕셔너리 형태로 변환
+        result = [
+            {"hour": hour, "reservation_count": count}
+            for hour, count in hour_stats.items()
+        ]
+        
+        # 시간대 기준 오름차순 정렬
+        result.sort(key=lambda x: x["hour"])
+        
+        return result

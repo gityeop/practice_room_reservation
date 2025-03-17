@@ -586,6 +586,7 @@ label {
     background-color: #EBF5FF;
     color: var(--color-info);
     border-left: 4px solid var(--color-info);
+    font-weight: 500;
 }
 
 /* 테이블 */
@@ -1386,6 +1387,7 @@ select.form-control::-ms-expand {
     border : var(--border-dark);
     padding: var(--spacing-md);
     border-radius: var(--radius-md);
+    font-weight: 400;
 }
 
 .alert-info:hover, .dashboard p:hover,.stats-section p:hover,.pending-reservations p:hover, .approved-reservations p:hover, .rejected-reservations p:hover , .canceled-reservations p:hover {
@@ -1396,4 +1398,5 @@ select.form-control::-ms-expand {
     border : var(--border-dark);
     padding: var(--spacing-md);
     border-radius: var(--radius-md);
+    font-weight: 400;
 }
