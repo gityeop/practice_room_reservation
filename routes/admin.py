@@ -168,46 +168,11 @@ def approve_reservation(reservation_id):
     try:
         result = repo.update_reservation(reservation_id, {'status': 'approved'})
         if result:
-            # SQLite 업데이트
-            try:
-                reservation = Reservation.query.get(reservation_id)
-                if reservation:
-                    reservation.status = 'approved'
-                    db.session.commit()
-                flash('예약이 승인되었습니다.', 'success')
-            except (OperationalError, PendingRollbackError) as db_err:
-                # 데이터베이스 연결 오류 발생 시 세션 롤백 후 재시도
-                db.session.rollback()
-                try:
-                    # 세션 초기화 후 다시 시도
-                    reservation = Reservation.query.get(reservation_id)
-                    if reservation:
-                        reservation.status = 'approved'
-                        db.session.commit()
-                    flash('예약이 승인되었습니다. (재연결 후)', 'success')
-                except Exception as retry_err:
-                    flash(f'SQLite 업데이트 중 오류 (재시도 실패): {str(retry_err)}', 'error')
+            flash('예약이 승인되었습니다.', 'success')
         else:
             flash('예약 승인 중 오류가 발생했습니다.', 'error')
     except Exception as e:
         flash(f'예약 승인 중 오류: {str(e)}', 'error')
-        # 백업: SQLite만 업데이트
-        try:
-            # 트랜잭션 롤백 확인
-            try:
-                db.session.rollback()
-            except Exception:
-                pass  # 이미 롤백됐거나 세션이 없는 경우 무시
-                
-            reservation = Reservation.query.get_or_404(reservation_id)
-            reservation.status = 'approved'
-            db.session.commit()
-            flash('예약이 승인되었습니다. (SQLite만 업데이트됨)', 'warning')
-        except (OperationalError, PendingRollbackError) as db_err:
-            db.session.rollback()
-            flash(f'데이터베이스 연결 오류: {str(db_err)}', 'error')
-        except Exception as backup_err:
-            flash(f'SQLite 백업 처리 중 오류: {str(backup_err)}', 'error')
     
     return redirect(url_for('admin.dashboard'))
 
@@ -219,46 +184,11 @@ def reject_reservation(reservation_id):
     try:
         result = repo.update_reservation(reservation_id, {'status': 'rejected'})
         if result:
-            # SQLite 업데이트
-            try:
-                reservation = Reservation.query.get(reservation_id)
-                if reservation:
-                    reservation.status = 'rejected'
-                    db.session.commit()
-                flash('예약이 거부되었습니다.', 'success')
-            except (OperationalError, PendingRollbackError) as db_err:
-                # 데이터베이스 연결 오류 발생 시 세션 롤백 후 재시도
-                db.session.rollback()
-                try:
-                    # 세션 초기화 후 다시 시도
-                    reservation = Reservation.query.get(reservation_id)
-                    if reservation:
-                        reservation.status = 'rejected'
-                        db.session.commit()
-                    flash('예약이 거부되었습니다. (재연결 후)', 'success')
-                except Exception as retry_err:
-                    flash(f'SQLite 업데이트 중 오류 (재시도 실패): {str(retry_err)}', 'error')
+            flash('예약이 거부되었습니다.', 'success')
         else:
             flash('예약 거부 중 오류가 발생했습니다.', 'error')
     except Exception as e:
         flash(f'예약 거부 중 오류: {str(e)}', 'error')
-        # 백업: SQLite만 업데이트
-        try:
-            # 트랜잭션 롤백 확인
-            try:
-                db.session.rollback()
-            except Exception:
-                pass  # 이미 롤백됐거나 세션이 없는 경우 무시
-                
-            reservation = Reservation.query.get_or_404(reservation_id)
-            reservation.status = 'rejected'
-            db.session.commit()
-            flash('예약이 거부되었습니다. (SQLite만 업데이트됨)', 'warning')
-        except (OperationalError, PendingRollbackError) as db_err:
-            db.session.rollback()
-            flash(f'데이터베이스 연결 오류: {str(db_err)}', 'error')
-        except Exception as backup_err:
-            flash(f'SQLite 백업 처리 중 오류: {str(backup_err)}', 'error')
     
     return redirect(url_for('admin.dashboard'))
 
@@ -293,28 +223,9 @@ def block_time():
                     result = repo.create_blocked_time(blocked_data)
                     if not result:
                         batch_success = False
-                    
-                    # SQLite에도 백업
-                    try:
-                        date = datetime.strptime(date_str, '%Y-%m-%d').date()
-                        start_time = datetime.strptime(start_time_str, '%H:%M').time()
-                        end_time = datetime.strptime(end_time_str, '%H:%M').time()
-                        
-                        blocked_time = BlockedTime(
-                            date=date,
-                            start_time=start_time,
-                            end_time=end_time,
-                            reason=reason
-                        )
-                        
-                        db.session.add(blocked_time)
-                    except ValueError:
-                        continue  # 잘못된 형식은 건너뛰기
                 except Exception as e:
                     batch_success = False
                     print(f"Error creating blocked time: {e}")
-            
-            db.session.commit()
             
             if batch_success:
                 flash('선택한 모든 시간대가 차단되었습니다.', 'success')
@@ -348,107 +259,57 @@ def block_time():
             try:
                 result = repo.create_blocked_time(blocked_data)
                 if result:
-                    # SQLite에도 백업
-                    blocked_time = BlockedTime(
-                        date=date,
-                        start_time=start_time,
-                        end_time=end_time,
-                        reason=reason
-                    )
-                    
-                    db.session.add(blocked_time)
-                    db.session.commit()
-                    
                     flash('시간이 차단되었습니다.', 'success')
                 else:
                     flash('시간 차단 중 오류가 발생했습니다.', 'error')
             except Exception as e:
                 flash(f'시간 차단 중 오류: {str(e)}', 'error')
-                # 백업: SQLite에만 저장
-                blocked_time = BlockedTime(
-                    date=date,
-                    start_time=start_time,
-                    end_time=end_time,
-                    reason=reason
-                )
-                
-                db.session.add(blocked_time)
-                db.session.commit()
-                flash('시간이 차단되었습니다. (SQLite만 업데이트됨)', 'warning')
             
             return redirect(url_for('admin.block_time'))
     
     # 캘린더에 표시할 데이터 준비 (Supabase 사용)
     try:
         blocked_times = repo.get_all_blocked_times()
-    except Exception as e:
-        # 백업: SQLite에서 가져오기
-        blocked_times = BlockedTime.query.all()
-    
-    # 예약 데이터도 함께 전달 (Supabase 사용)
-    try:
+        # 예약 데이터도 함께 전달 (Supabase 사용)
         all_reservations = repo.get_all_reservations(['pending', 'approved'])
     except Exception as e:
-        # 백업: SQLite에서 가져오기
-        all_reservations = Reservation.query.filter(Reservation.status.in_(['pending', 'approved'])).all()
+        flash(f'데이터를 불러오는 중 오류가 발생했습니다: {str(e)}', 'error')
+        blocked_times = []
+        all_reservations = []
     
     # JavaScript에서 사용할 수 있도록 JSON 형태로 변환
     blocked_times_json = []
     for block in blocked_times:
-        # Supabase 데이터인 경우
-        if isinstance(block, dict):
-            blocked_times_json.append({
-                'id': block.get('id'),
-                'date': block.get('date'),
-                'start_time': block.get('start_time'),
-                'end_time': block.get('end_time'),
-                'reason': block.get('reason')
-            })
-        else:  # SQLite 객체인 경우
-            blocked_times_json.append({
-                'id': block.id,
-                'date': block.date.strftime('%Y-%m-%d'),
-                'start_time': block.start_time.strftime('%H:%M'),
-                'end_time': block.end_time.strftime('%H:%M'),
-                'reason': block.reason
-            })
+        # Supabase 데이터로 변환
+        blocked_times_json.append({
+            'id': block.get('id'),
+            'date': block.get('date'),
+            'start_time': block.get('start_time'),
+            'end_time': block.get('end_time'),
+            'reason': block.get('reason')
+        })
     
     reservations_json = []
     for reservation in all_reservations:
-        # Supabase 데이터인 경우
-        if isinstance(reservation, dict):
-            user_id = reservation.get('user_id')
-            user_data = repo.get_user_by_id(user_id)
-            
-            if user_data:
-                reservations_json.append({
-                    'id': reservation.get('id'),
-                    'date': reservation.get('date'),
-                    'start_time': reservation.get('start_time'),
-                    'end_time': reservation.get('end_time'),
-                    'status': reservation.get('status'),
-                    'purpose': reservation.get('purpose'),
-                    'user_name': user_data.get('name', 'Unknown'),
-                    'user_department': user_data.get('department', 'Unknown')
-                })
-        else:  # SQLite 객체인 경우
-            user = User.query.get(reservation.user_id)
-            if user:
-                reservations_json.append({
-                    'id': reservation.id,
-                    'date': reservation.date.strftime('%Y-%m-%d'),
-                    'start_time': reservation.start_time.strftime('%H:%M'),
-                    'end_time': reservation.end_time.strftime('%H:%M'),
-                    'status': reservation.status,
-                    'purpose': reservation.purpose,
-                    'user_name': user.name,
-                    'user_department': user.department
-                })
+        user_id = reservation.get('user_id')
+        user_data = repo.get_user_by_id(user_id)
+        
+        if user_data:
+            reservations_json.append({
+                'id': reservation.get('id'),
+                'date': reservation.get('date'),
+                'start_time': reservation.get('start_time'),
+                'end_time': reservation.get('end_time'),
+                'status': reservation.get('status'),
+                'purpose': reservation.get('purpose'),
+                'user_name': user_data.get('name', 'Unknown'),
+                'user_department': user_data.get('department', 'Unknown')
+            })
     
     return render_template('admin/block_time.html', 
-                           blocked_times=blocked_times,
-                           blocked_times_json=blocked_times_json,
-                           reservations_json=reservations_json)
+                          blocked_times=blocked_times,
+                          blocked_times_json=blocked_times_json,
+                          reservations_json=reservations_json)
 
 @admin_bp.route('/unblock/<int:block_id>', methods=['POST'])
 @login_required
@@ -458,21 +319,11 @@ def unblock_time(block_id):
     try:
         result = repo.delete_blocked_time(block_id)
         if result:
-            # SQLite에서도 삭제
-            blocked_time = BlockedTime.query.get(block_id)
-            if blocked_time:
-                db.session.delete(blocked_time)
-                db.session.commit()
             flash('차단된 시간이 해제되었습니다.', 'success')
         else:
             flash('차단 시간 해제 중 오류가 발생했습니다.', 'error')
     except Exception as e:
         flash(f'차단 시간 해제 중 오류: {str(e)}', 'error')
-        # 백업: SQLite에서만 삭제
-        blocked_time = BlockedTime.query.get_or_404(block_id)
-        db.session.delete(blocked_time)
-        db.session.commit()
-        flash('차단된 시간이 해제되었습니다. (SQLite만 업데이트됨)', 'warning')
     
     return redirect(url_for('admin.block_time'))
 
@@ -490,23 +341,17 @@ def stats():
         hour_stats = repo.get_hour_stats()
         
         if not dept_stats or not hour_stats:
-            raise Exception('Supabase에서 통계 데이터를 가져올 수 없습니다.')
+            flash('Supabase에서 통계 데이터를 가져올 수 없습니다.', 'error')
+            # 결과가 없는 경우 빈 데이터 제공
+            if not dept_stats:
+                dept_stats = []
+            if not hour_stats:
+                hour_stats = []
     except Exception as e:
-        # 백업: SQLite에서 통계 데이터 조회
-        # 학과별 통계
-        dept_stats = db.session.query(
-            User.department,
-            func.count(Reservation.id).label('reservation_count')
-        ).join(Reservation, Reservation.user_id == User.id)\
-         .filter(Reservation.status == 'approved')\
-         .group_by(User.department).all()
-        
-        # 시간대별 통계
-        hour_stats = db.session.query(
-            func.extract('hour', Reservation.start_time).label('hour'),
-            func.count(Reservation.id).label('reservation_count')
-        ).filter(Reservation.status == 'approved')\
-         .group_by('hour').all()
+        flash(f'통계 데이터를 가져오는 중 오류 발생: {str(e)}', 'error')
+        # 오류 발생 시 빈 데이터 제공
+        dept_stats = []
+        hour_stats = []
     
     return render_template('admin/stats.html', dept_stats=dept_stats, hour_stats=hour_stats)
 
@@ -529,17 +374,9 @@ def manage_users():
                 'cancel_count': user.get('cancel_count', 0)
             }
     except Exception as e:
-        # 백업: SQLite에서 데이터 가져오기
-        users = User.query.filter(User.is_admin == False).order_by(User.name).all()
-        
-        # 각 사용자별 예약 횟수 정보 가져오기
+        flash(f'사용자 데이터를 가져오는 중 오류가 발생했습니다: {str(e)}', 'error')
+        users = []
         user_stats = {}
-        for user in users:
-            reservation_count = Reservation.query.filter_by(user_id=user.id).count()
-            user_stats[user.id] = {
-                'total_reservations': reservation_count,
-                'cancel_count': user.cancel_count
-            }
     
     return render_template('admin/users.html', users=users, user_stats=user_stats)
 
@@ -577,64 +414,10 @@ def delete_user(user_id):
         result = repo.delete_user(user_id)
         
         if result:
-            # SQLite에서도 삭제
-            try:
-                user = User.query.get(user_id)
-                if user:
-                    # 예약 정보 삭제
-                    reservations = Reservation.query.filter_by(user_id=user_id).all()
-                    for reservation in reservations:
-                        db.session.delete(reservation)
-                    
-                    # 사용자 삭제
-                    db.session.delete(user)
-                    db.session.commit()
-            except Exception as e:
-                print(f"SQLite 사용자 삭제 오류: {e}")
-            
             flash(f"사용자 {user_data.get('name')}({user_data.get('student_id')})이(가) 삭제되었습니다.", 'success')
         else:
             flash('사용자 삭제 중 오류가 발생했습니다.', 'error')
     except Exception as e:
         flash(f'사용자 삭제 중 오류가 발생했습니다: {str(e)}', 'error')
-        
-        # 백업: SQLite에서만 삭제
-        try:
-            user = User.query.get_or_404(user_id)
-            
-            # 관리자 계정은 삭제할 수 없음
-            if user.is_admin:
-                flash('관리자 계정은 삭제할 수 없습니다.', 'error')
-                return redirect(url_for('admin.manage_users'))
-            
-            # 회원의 예약 정보를 삭제하거나 업데이트
-            reservations = Reservation.query.filter_by(user_id=user.id).all()
-            
-            # 현재나 미래의 예약이 있는지 확인
-            has_active_reservations = False
-            for reservation in reservations:
-                if reservation.date >= datetime.now().date() and reservation.status in ['pending', 'approved']:
-                    has_active_reservations = True
-                    break
-            
-            if has_active_reservations:
-                flash('사용자에게 진행 중이거나 예정된 예약이 있습니다. 예약을 취소하거나 완료한 후 다시 시도해주세요.', 'error')
-                return redirect(url_for('admin.manage_users'))
-            
-            # 사용자 삭제 처리
-            try:
-                # 예약 정보 삭제
-                for reservation in reservations:
-                    db.session.delete(reservation)
-                
-                # 사용자 삭제
-                db.session.delete(user)
-                db.session.commit()
-                flash(f'사용자 {user.name}({user.student_id})이(가) 삭제되었습니다. (SQLite만 업데이트됨)', 'warning')
-            except Exception as e:
-                db.session.rollback()
-                flash(f'사용자 삭제 중 오류가 발생했습니다: {str(e)}', 'error')
-        except Exception as e:
-            flash(f'사용자 조회 중 오류가 발생했습니다: {str(e)}', 'error')
     
     return redirect(url_for('admin.manage_users'))
