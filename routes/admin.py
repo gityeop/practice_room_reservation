@@ -3,7 +3,8 @@ from flask_login import login_required, current_user
 from models import db, Reservation, BlockedTime, User
 from datetime import datetime, timedelta
 from sqlalchemy import func
-import json
+from sqlalchemy.exc import OperationalError, PendingRollbackError
+import traceback
 
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
 
@@ -168,20 +169,45 @@ def approve_reservation(reservation_id):
         result = repo.update_reservation(reservation_id, {'status': 'approved'})
         if result:
             # SQLite 업데이트
-            reservation = Reservation.query.get(reservation_id)
-            if reservation:
-                reservation.status = 'approved'
-                db.session.commit()
-            flash('예약이 승인되었습니다.', 'success')
+            try:
+                reservation = Reservation.query.get(reservation_id)
+                if reservation:
+                    reservation.status = 'approved'
+                    db.session.commit()
+                flash('예약이 승인되었습니다.', 'success')
+            except (OperationalError, PendingRollbackError) as db_err:
+                # 데이터베이스 연결 오류 발생 시 세션 롤백 후 재시도
+                db.session.rollback()
+                try:
+                    # 세션 초기화 후 다시 시도
+                    reservation = Reservation.query.get(reservation_id)
+                    if reservation:
+                        reservation.status = 'approved'
+                        db.session.commit()
+                    flash('예약이 승인되었습니다. (재연결 후)', 'success')
+                except Exception as retry_err:
+                    flash(f'SQLite 업데이트 중 오류 (재시도 실패): {str(retry_err)}', 'error')
         else:
             flash('예약 승인 중 오류가 발생했습니다.', 'error')
     except Exception as e:
         flash(f'예약 승인 중 오류: {str(e)}', 'error')
         # 백업: SQLite만 업데이트
-        reservation = Reservation.query.get_or_404(reservation_id)
-        reservation.status = 'approved'
-        db.session.commit()
-        flash('예약이 승인되었습니다. (SQLite만 업데이트됨)', 'warning')
+        try:
+            # 트랜잭션 롤백 확인
+            try:
+                db.session.rollback()
+            except Exception:
+                pass  # 이미 롤백됐거나 세션이 없는 경우 무시
+                
+            reservation = Reservation.query.get_or_404(reservation_id)
+            reservation.status = 'approved'
+            db.session.commit()
+            flash('예약이 승인되었습니다. (SQLite만 업데이트됨)', 'warning')
+        except (OperationalError, PendingRollbackError) as db_err:
+            db.session.rollback()
+            flash(f'데이터베이스 연결 오류: {str(db_err)}', 'error')
+        except Exception as backup_err:
+            flash(f'SQLite 백업 처리 중 오류: {str(backup_err)}', 'error')
     
     return redirect(url_for('admin.dashboard'))
 
@@ -194,20 +220,45 @@ def reject_reservation(reservation_id):
         result = repo.update_reservation(reservation_id, {'status': 'rejected'})
         if result:
             # SQLite 업데이트
-            reservation = Reservation.query.get(reservation_id)
-            if reservation:
-                reservation.status = 'rejected'
-                db.session.commit()
-            flash('예약이 거부되었습니다.', 'error')
+            try:
+                reservation = Reservation.query.get(reservation_id)
+                if reservation:
+                    reservation.status = 'rejected'
+                    db.session.commit()
+                flash('예약이 거부되었습니다.', 'success')
+            except (OperationalError, PendingRollbackError) as db_err:
+                # 데이터베이스 연결 오류 발생 시 세션 롤백 후 재시도
+                db.session.rollback()
+                try:
+                    # 세션 초기화 후 다시 시도
+                    reservation = Reservation.query.get(reservation_id)
+                    if reservation:
+                        reservation.status = 'rejected'
+                        db.session.commit()
+                    flash('예약이 거부되었습니다. (재연결 후)', 'success')
+                except Exception as retry_err:
+                    flash(f'SQLite 업데이트 중 오류 (재시도 실패): {str(retry_err)}', 'error')
         else:
             flash('예약 거부 중 오류가 발생했습니다.', 'error')
     except Exception as e:
         flash(f'예약 거부 중 오류: {str(e)}', 'error')
         # 백업: SQLite만 업데이트
-        reservation = Reservation.query.get_or_404(reservation_id)
-        reservation.status = 'rejected'
-        db.session.commit()
-        flash('예약이 거부되었습니다. (SQLite만 업데이트됨)', 'warning')
+        try:
+            # 트랜잭션 롤백 확인
+            try:
+                db.session.rollback()
+            except Exception:
+                pass  # 이미 롤백됐거나 세션이 없는 경우 무시
+                
+            reservation = Reservation.query.get_or_404(reservation_id)
+            reservation.status = 'rejected'
+            db.session.commit()
+            flash('예약이 거부되었습니다. (SQLite만 업데이트됨)', 'warning')
+        except (OperationalError, PendingRollbackError) as db_err:
+            db.session.rollback()
+            flash(f'데이터베이스 연결 오류: {str(db_err)}', 'error')
+        except Exception as backup_err:
+            flash(f'SQLite 백업 처리 중 오류: {str(backup_err)}', 'error')
     
     return redirect(url_for('admin.dashboard'))
 
