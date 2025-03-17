@@ -1,5 +1,5 @@
 import os
-from flask import Flask
+from flask import Flask, send_from_directory
 from flask_login import LoginManager
 from config import Config
 from models import db, User
@@ -30,6 +30,12 @@ def load_user(user_id):
 app.register_blueprint(auth_bp)
 app.register_blueprint(reservation_bp)
 app.register_blueprint(admin_bp)
+
+# favicon.ico uc81cucacf5 ub77cuc6b0ud2b8 ucd94uac00
+@app.route('/favicon.ico')
+def favicon():
+    return send_from_directory(os.path.join(app.root_path, 'static', 'images', 'characters'),
+                               'cc_logo.png', mimetype='image/png')
 
 # 데이터베이스 생성 및 관리자 계정 생성
 with app.app_context():
