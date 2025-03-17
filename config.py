@@ -36,3 +36,9 @@ class Config:
     # 세션 쿠키 보안 설정 추가
     SESSION_COOKIE_SECURE = True  # HTTPS에서만 쿠키 전송
     SESSION_COOKIE_HTTPONLY = True  # JavaScript에서 쿠키 접근 방지
+    
+    # Supabase 설정 추가
+    SUPABASE_URL = os.environ.get('SUPABASE_URL')
+    SUPABASE_KEY = os.environ.get('SUPABASE_KEY')
+    SUPABASE_SERVICE_KEY = os.environ.get('SUPABASE_SERVICE_KEY', None)
+    USE_SUPABASE = True if SUPABASE_URL and SUPABASE_KEY else False

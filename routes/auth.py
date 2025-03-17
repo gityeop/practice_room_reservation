@@ -1,10 +1,16 @@
-from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify, session, make_response
+from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify, session, make_response, g
 from flask_login import login_user, logout_user, login_required, current_user
 from models import db, User
 import re
+from datetime import datetime, timedelta
 from functools import wraps
 
 auth_bp = Blueprint('auth', __name__)
+
+# 플라스크 애플리케이션에서 리포지토리 가져오기
+def get_repo():
+    from app import get_repo as app_get_repo
+    return app_get_repo()
 
 # 학번 유효성 검사 함수
 def validate_student_id(student_id):
@@ -30,9 +36,10 @@ def token_required(f):
         if not token:
             flash('로그인이 필요합니다.', 'error')
             return redirect(url_for('auth.login'))
-            
-        user = User.check_token(token)
-        if not user:
+        
+        repo = get_repo()
+        user_data = repo.get_user_by_token(token)
+        if not user_data:
             # 토큰이 유효하지 않으면 세션 삭제 후 재로그인
             session.pop('token', None)
             flash('세션이 만료되었습니다. 다시 로그인해주세요.', 'error')
@@ -60,21 +67,45 @@ def register():
             flash('비밀번호가 일치하지 않습니다.', 'error')
             return redirect(url_for('auth.register'))
         
-        # 이미 등록된 학번인지 확인
-        user = User.query.filter_by(student_id=student_id).first()
-        if user:
+        # 이미 등록된 학번인지 확인 (Supabase 사용)
+        repo = get_repo()
+        existing_user = repo.get_user_by_student_id(student_id)
+        if existing_user:
             flash('이미 등록된 학번입니다.', 'error')
             return redirect(url_for('auth.register'))
         
-        # 새 사용자 생성
+        # 새 사용자 생성 (SQLAlchemy 및 Supabase 모두 사용)
         new_user = User(name=name, student_id=student_id, department=major)
         new_user.set_password(password)
         
-        db.session.add(new_user)
-        db.session.commit()
+        # Supabase에 사용자 저장
+        user_data = {
+            'name': name,
+            'student_id': student_id,
+            'department': major,
+            'password_hash': new_user.password_hash,
+            'is_admin': False,
+            'cancel_count': 0,
+            'token': None,
+            'token_expiration': None
+        }
         
-        flash('회원가입이 완료되었습니다!', 'success')
-        return redirect(url_for('auth.login'))
+        try:
+            # Supabase에 사용자 생성
+            result = repo.create_user(user_data)
+            if result:
+                # 백업용으로 SQLite에도 저장
+                db.session.add(new_user)
+                db.session.commit()
+                
+                flash('회원가입이 완료되었습니다!', 'success')
+                return redirect(url_for('auth.login'))
+            else:
+                flash('회원가입 오류가 발생했습니다. 다시 시도해주세요.', 'error')
+                return redirect(url_for('auth.register'))
+        except Exception as e:
+            flash(f'회원가입 오류: {str(e)}', 'error')
+            return redirect(url_for('auth.register'))
     
     return render_template('register.html')
 
@@ -90,8 +121,9 @@ def check_student_id():
     if not validate_student_id(student_id):
         return {'exists': False, 'message': '학번은 9자리여야 합니다.'}, 400
     
-    # 데이터베이스에서 학번 조회
-    user = User.query.filter_by(student_id=student_id).first()
+    # Supabase에서 학번 조회
+    repo = get_repo()
+    user = repo.get_user_by_student_id(student_id)
     
     if user:
         return {'exists': True, 'message': '이미 등록된 학번입니다.'}, 200
@@ -113,22 +145,55 @@ def login():
         if not validate_student_id(student_id):
             flash('학번은 반드시 9자리여야 합니다.', 'error')
             return redirect(url_for('auth.login'))
-            
-        user = User.query.filter_by(student_id=student_id).first()
         
-        if not user or not user.check_password(password):
+        # Supabase에서 사용자 조회
+        repo = get_repo()
+        user_data = repo.get_user_by_student_id(student_id)
+        
+        if not user_data:
+            flash('학번 또는 비밀번호가 올바르지 않습니다.', 'error')
+            return redirect(url_for('auth.login'))
+        
+        # User 객체 생성
+        user = User(
+            id=user_data['id'],
+            name=user_data['name'],
+            student_id=user_data['student_id'],
+            department=user_data['department'],
+            password_hash=user_data['password_hash'],
+            cancel_count=user_data.get('cancel_count', 0),
+            is_admin=user_data.get('is_admin', False),
+            token=user_data.get('token'),
+            token_expiration=user_data.get('token_expiration')
+        )
+        
+        # 비밀번호 확인
+        if not user.check_password(password):
             flash('학번 또는 비밀번호가 올바르지 않습니다.', 'error')
             return redirect(url_for('auth.login'))
         
         # 이미 로그인된 세션이 있는지 확인
-        existing_user = User.check_token(user.token)
-        if existing_user:
-            # 기존 세션 무효화 (선택적으로 구현 가능)
-            existing_user.revoke_token()
-            flash('다른 기기에서의 로그인 세션이 종료되었습니다.', 'warning')
+        if user.token:
+            existing_user = repo.get_user_by_token(user.token)
+            if existing_user:
+                # 기존 토큰 무효화
+                token_data = {
+                    'token': None,
+                    'token_expiration': None
+                }
+                repo.update_user(user.id, token_data)
+                flash('다른 기기에서의 로그인 세션이 종료되었습니다.', 'warning')
         
         # 새 토큰 발급
-        token = user.get_token()
+        expiration = datetime.utcnow() + timedelta(days=1)
+        token = user.generate_token()  # 토큰 생성 메서드
+        
+        # Supabase에 토큰 정보 업데이트
+        token_data = {
+            'token': token,
+            'token_expiration': expiration.isoformat()
+        }
+        repo.update_user(user.id, token_data)
         
         # 로그인 처리
         login_user(user)
@@ -149,63 +214,116 @@ def login():
 @auth_bp.route('/logout')
 @login_required
 def logout():
-    # 토큰 무효화
-    if current_user:
-        current_user.revoke_token()
+    repo = get_repo()
+    
+    # 현재 사용자의 토큰 무효화
+    if current_user.is_authenticated:
+        token_data = {
+            'token': None,
+            'token_expiration': None
+        }
+        try:
+            repo.update_user(current_user.id, token_data)
+        except Exception as e:
+            print(f"토큰 무효화 중 오류: {e}")
     
     # 세션에서 토큰 제거
     session.pop('token', None)
     
-    # 로그아웃
+    # 로그아웃 처리
     logout_user()
     
-    flash('로그아웃 되었습니다.', 'success')
+    flash('로그아웃되었습니다.', 'info')
     return redirect(url_for('auth.login'))
 
 # 세션 검증 API
-@auth_bp.route('/validate-session', methods=['GET'])
-@login_required
+@auth_bp.route('/validate-session', methods=['POST'])
 def validate_session():
     token = session.get('token')
+    
     if not token:
         return jsonify({'valid': False}), 401
-        
-    user = User.check_token(token)
-    if not user or user.id != current_user.id:
+    
+    # Supabase에서 토큰으로 사용자 조회
+    repo = get_repo()
+    user_data = repo.get_user_by_token(token)
+    
+    if user_data:
+        return jsonify({'valid': True}), 200
+    else:
+        # 세션이 만료된 경우 세션 삭제
+        session.pop('token', None)
         return jsonify({'valid': False}), 401
-        
-    return jsonify({'valid': True}), 200
 
 # 내 계정 정보 보기 및 편집
 @auth_bp.route('/profile', methods=['GET', 'POST'])
 @login_required
-@token_required
 def profile():
     if request.method == 'POST':
-        # 현재는 비밀번호 변경만 허용
-        current_password = request.form.get('current_password')
-        new_password = request.form.get('new_password')
-        confirm_password = request.form.get('confirm_password')
+        action = request.form.get('action')
         
-        # 현재 비밀번호 확인
-        if not current_user.check_password(current_password):
-            flash('현재 비밀번호가 올바르지 않습니다.', 'error')
-            return redirect(url_for('auth.profile'))
-        
-        # 새 비밀번호 확인
-        if new_password != confirm_password:
-            flash('새 비밀번호가 일치하지 않습니다.', 'error')
-            return redirect(url_for('auth.profile'))
+        # 계정 정보 업데이트
+        if action == 'update':
+            name = request.form.get('name')
+            department = request.form.get('department')
+            
+            if name and department:
+                repo = get_repo()
+                
+                # Supabase 업데이트
+                user_data = {
+                    'name': name,
+                    'department': department
+                }
+                
+                try:
+                    result = repo.update_user(current_user.id, user_data)
+                    if result:
+                        # SQLite도 업데이트 (백업)
+                        current_user.name = name
+                        current_user.department = department
+                        db.session.commit()
+                        
+                        flash('계정 정보가 업데이트되었습니다.', 'success')
+                    else:
+                        flash('업데이트 중 오류가 발생했습니다.', 'error')
+                except Exception as e:
+                    flash(f'업데이트 오류: {str(e)}', 'error')
+            else:
+                flash('이름과 학과를 입력해주세요.', 'error')
         
         # 비밀번호 변경
-        current_user.set_password(new_password)
-        db.session.commit()
+        elif action == 'password':
+            current_password = request.form.get('current_password')
+            new_password = request.form.get('new_password')
+            confirm_password = request.form.get('confirm_password')
+            
+            if not current_user.check_password(current_password):
+                flash('현재 비밀번호가 올바르지 않습니다.', 'error')
+            elif new_password != confirm_password:
+                flash('새 비밀번호가 일치하지 않습니다.', 'error')
+            elif len(new_password) < 4:
+                flash('비밀번호는 최소 4자 이상이어야 합니다.', 'error')
+            else:
+                # 비밀번호 변경 적용
+                current_user.set_password(new_password)
+                
+                repo = get_repo()
+                # Supabase 업데이트
+                user_data = {'password_hash': current_user.password_hash}
+                
+                try:
+                    result = repo.update_user(current_user.id, user_data)
+                    if result:
+                        # SQLite도 업데이트 (백업)
+                        db.session.commit()
+                        
+                        flash('비밀번호가 변경되었습니다.', 'success')
+                    else:
+                        flash('비밀번호 변경 중 오류가 발생했습니다.', 'error')
+                except Exception as e:
+                    flash(f'비밀번호 변경 오류: {str(e)}', 'error')
         
-        # 토큰 갱신 (선택적 보안 조치)
-        token = current_user.get_token()
-        session['token'] = token
-        
-        flash('비밀번호가 성공적으로 변경되었습니다.', 'success')
         return redirect(url_for('auth.profile'))
     
     return render_template('profile.html')

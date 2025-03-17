@@ -24,11 +24,17 @@ class User(db.Model, UserMixin):
 
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
+    
+    def generate_token(self, expires_in=86400):
+        """Supabase와 함께 사용하기 위한 새 토큰을 생성하지만 데이터베이스에 저장하지는 않음"""
+        # 새 토큰 생성
+        token = secrets.token_hex(32)
+        return token
         
     def get_token(self, expires_in=86400):
-        # 기존 토큰이 있고 만료되지 않았으면 기존 토큰 반환
+        """SQLite 호환을 위해 유지. 기존 토큰이 있고 만료되지 않았으면 기존 토큰 반환, 아니면 새 토큰 생성하고 저장"""
         now = datetime.utcnow()
-        if self.token and self.token_expiration > now + timedelta(seconds=60):
+        if self.token and self.token_expiration and self.token_expiration > now + timedelta(seconds=60):
             return self.token
         # 새 토큰 생성
         self.token = secrets.token_hex(32)
@@ -37,19 +43,18 @@ class User(db.Model, UserMixin):
         return self.token
 
     def revoke_token(self):
-        # 토큰 무효화
+        """토큰 무효화 - SQLite 호환을 위해 유지"""
         self.token = None
         self.token_expiration = None
         db.session.commit()
         
     @staticmethod
     def check_token(token):
-        # ud1a0ud070uc73cub85c uc0acuc6a9uc790 ucc3euae30
-        if not token:  # ud1a0ud070uc774 Noneuc774uba74 uc989uc2dc None ubc18ud658
+        """토큰으로 사용자 찾기 - SQLite 호환을 위해 유지"""
+        if not token:
             return None
             
         user = User.query.filter_by(token=token).first()
-        # uc0acuc6a9uc790uac00 uc5c6uac70ub098 ud1a0ud070uc774 ub9ccub8ccub41c uacbduc6b0
         if not user or not user.token_expiration or user.token_expiration < datetime.utcnow():
             return None
         return user

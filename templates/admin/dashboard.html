@@ -45,25 +45,53 @@
         <div class="calendar-view">
             {% for date in dates %}
                 <div class="date-group">
-                    <h4>{{ date.strftime('%Y-%m-%d') }} 
-                        {% if date.strftime('%w') == '0' %}(일)
-                        {% elif date.strftime('%w') == '1' %}(월)
-                        {% elif date.strftime('%w') == '2' %}(화)
-                        {% elif date.strftime('%w') == '3' %}(수)
-                        {% elif date.strftime('%w') == '4' %}(목)
-                        {% elif date.strftime('%w') == '5' %}(금)
-                        {% elif date.strftime('%w') == '6' %}(토)
+                    <h4>{{ date.strftime('%Y-%m-%d') if date is not string else date }} 
+                        {% if date is not string and date.weekday is defined %}
+                            {% if date.weekday() == 6 %}(일)
+                            {% elif date.weekday() == 0 %}(월)
+                            {% elif date.weekday() == 1 %}(화)
+                            {% elif date.weekday() == 2 %}(수)
+                            {% elif date.weekday() == 3 %}(목)
+                            {% elif date.weekday() == 4 %}(금)
+                            {% elif date.weekday() == 5 %}(토)
+                            {% endif %}
+                        {% else %}
+                            {# 날짜 문자열의 마지막 숫자로 요일 유추 (yyyy-mm-dd 형식 가정) #}
+                            {% set day_of_week = date[-1:]|int if date is string else 0 %}
+                            {% if day_of_week == 0 %}(일)
+                            {% elif day_of_week == 1 %}(월)
+                            {% elif day_of_week == 2 %}(화)
+                            {% elif day_of_week == 3 %}(수)
+                            {% elif day_of_week == 4 %}(목)
+                            {% elif day_of_week == 5 %}(금)
+                            {% elif day_of_week == 6 %}(토)
+                            {% endif %}
                         {% endif %}
-                        {% if date == today %}
+                        {% if (date|string)[:10] == (today|string)[:10] %}
                             <span class="badge bg-info">오늘</span>
                         {% endif %}
                     </h4>
                     
                     <div class="date-group-body">
-                        {% for reservation in grouped_reservations[date] %}
+                        {% set date_key = date.strftime('%Y-%m-%d') %}
+                        {% for reservation in grouped_reservations[date_key] %}
                         <div class="reservation-item status-{{ reservation.status }}">
-                            <span class="time">{{ reservation.start_time.strftime('%H:%M') }} - {{ reservation.end_time.strftime('%H:%M') }}</span>
-                            <span class="user">{{ reservation.user.name }} ({{ reservation.user.department }})</span>
+                            <span class="time">
+                                {% if reservation is mapping %}
+                                    {# Supabase uc778ub370ud130uc758 uacbduc6b0 (ub514ub809uc158ub9ac) #}
+                                    {{ reservation.start_time }} - {{ reservation.end_time }}
+                                {% else %}
+                                    {# SQLite uc778ub370ud130uc758 uacbduc6b0 (ORM uac1duccb4) #}
+                                    {{ reservation.start_time.strftime('%H:%M') }} - {{ reservation.end_time.strftime('%H:%M') }}
+                                {% endif %}
+                            </span>
+                            <span class="user">
+                                {% if reservation is mapping %}
+                                    {{ reservation.user_name }} ({{ reservation.user_department|default('') }})
+                                {% else %}
+                                    {{ reservation.user.name }} ({{ reservation.user.department }})
+                                {% endif %}
+                            </span>
                             <span class="purpose">{{ reservation.purpose }}</span>
                             <span class="status">
                                 {% if reservation.status == 'pending' %}
@@ -108,12 +136,48 @@
                 <tbody>
                     {% for reservation in pending_reservations %}
                     <tr>
-                        <td>{{ reservation.user.name }}</td>
-                        <td>{{ reservation.user.department }}</td>
-                        <td>{{ reservation.user.student_id }}</td>
-                        <td>{{ reservation.date.strftime('%Y-%m-%d') }}</td>
-                        <td>{{ reservation.start_time.strftime('%H:%M') }}</td>
-                        <td>{{ reservation.end_time.strftime('%H:%M') }}</td>
+                        <td>
+                            {% if reservation is mapping %}
+                                {{ reservation.user_name|default(reservation.user_id) }}
+                            {% else %}
+                                {{ reservation.user.name }}
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if reservation is mapping %}
+                                {{ reservation.user_department|default('') }}
+                            {% else %}
+                                {{ reservation.user.department }}
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if reservation is mapping %}
+                                {{ reservation.user_student_id|default('') }}
+                            {% else %}
+                                {{ reservation.user.student_id }}
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if reservation is mapping %}
+                                {{ reservation.date }}
+                            {% else %}
+                                {{ reservation.date.strftime('%Y-%m-%d') }}
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if reservation is mapping %}
+                                {{ reservation.start_time }}
+                            {% else %}
+                                {{ reservation.start_time.strftime('%H:%M') }}
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if reservation is mapping %}
+                                {{ reservation.end_time }}
+                            {% else %}
+                                {{ reservation.end_time.strftime('%H:%M') }}
+                            {% endif %}
+                        </td>
                         <td>{{ reservation.purpose }}</td>
                         <td class="action-buttons">
                             <form action="{{ url_for('admin.approve_reservation', reservation_id=reservation.id) }}" method="post" class="inline-form">
@@ -153,12 +217,48 @@
                 <tbody>
                     {% for reservation in approved_reservations %}
                     <tr>
-                        <td>{{ reservation.user.name }}</td>
-                        <td>{{ reservation.user.department }}</td>
-                        <td>{{ reservation.user.student_id }}</td>
-                        <td>{{ reservation.date.strftime('%Y-%m-%d') }}</td>
-                        <td>{{ reservation.start_time.strftime('%H:%M') }}</td>
-                        <td>{{ reservation.end_time.strftime('%H:%M') }}</td>
+                        <td>
+                            {% if reservation is mapping %}
+                                {{ reservation.user_name|default(reservation.user_id) }}
+                            {% else %}
+                                {{ reservation.user.name }}
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if reservation is mapping %}
+                                {{ reservation.user_department|default('') }}
+                            {% else %}
+                                {{ reservation.user.department }}
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if reservation is mapping %}
+                                {{ reservation.user_student_id|default('') }}
+                            {% else %}
+                                {{ reservation.user.student_id }}
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if reservation is mapping %}
+                                {{ reservation.date }}
+                            {% else %}
+                                {{ reservation.date.strftime('%Y-%m-%d') }}
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if reservation is mapping %}
+                                {{ reservation.start_time }}
+                            {% else %}
+                                {{ reservation.start_time.strftime('%H:%M') }}
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if reservation is mapping %}
+                                {{ reservation.end_time }}
+                            {% else %}
+                                {{ reservation.end_time.strftime('%H:%M') }}
+                            {% endif %}
+                        </td>
                         <td>{{ reservation.purpose }}</td>
                         <td class="action-buttons">
                             <form action="{{ url_for('reservation.cancel_reservation', reservation_id=reservation.id) }}" method="post" class="inline-form" onsubmit="return confirm('정말 이 예약을 취소하시겠습니까?');">
@@ -194,12 +294,48 @@
                 <tbody>
                     {% for reservation in rejected_reservations %}
                     <tr>
-                        <td>{{ reservation.user.name }}</td>
-                        <td>{{ reservation.user.department }}</td>
-                        <td>{{ reservation.user.student_id }}</td>
-                        <td>{{ reservation.date.strftime('%Y-%m-%d') }}</td>
-                        <td>{{ reservation.start_time.strftime('%H:%M') }}</td>
-                        <td>{{ reservation.end_time.strftime('%H:%M') }}</td>
+                        <td>
+                            {% if reservation is mapping %}
+                                {{ reservation.user_name|default(reservation.user_id) }}
+                            {% else %}
+                                {{ reservation.user.name }}
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if reservation is mapping %}
+                                {{ reservation.user_department|default('') }}
+                            {% else %}
+                                {{ reservation.user.department }}
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if reservation is mapping %}
+                                {{ reservation.user_student_id|default('') }}
+                            {% else %}
+                                {{ reservation.user.student_id }}
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if reservation is mapping %}
+                                {{ reservation.date }}
+                            {% else %}
+                                {{ reservation.date.strftime('%Y-%m-%d') }}
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if reservation is mapping %}
+                                {{ reservation.start_time }}
+                            {% else %}
+                                {{ reservation.start_time.strftime('%H:%M') }}
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if reservation is mapping %}
+                                {{ reservation.end_time }}
+                            {% else %}
+                                {{ reservation.end_time.strftime('%H:%M') }}
+                            {% endif %}
+                        </td>
                         <td>{{ reservation.purpose }}</td>
                     </tr>
                     {% endfor %}
@@ -230,12 +366,48 @@
                 <tbody>
                     {% for reservation in canceled_reservations %}
                     <tr>
-                        <td>{{ reservation.user.name }}</td>
-                        <td>{{ reservation.user.department }}</td>
-                        <td>{{ reservation.user.student_id }}</td>
-                        <td>{{ reservation.date.strftime('%Y-%m-%d') }}</td>
-                        <td>{{ reservation.start_time.strftime('%H:%M') }}</td>
-                        <td>{{ reservation.end_time.strftime('%H:%M') }}</td>
+                        <td>
+                            {% if reservation is mapping %}
+                                {{ reservation.user_name|default(reservation.user_id) }}
+                            {% else %}
+                                {{ reservation.user.name }}
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if reservation is mapping %}
+                                {{ reservation.user_department|default('') }}
+                            {% else %}
+                                {{ reservation.user.department }}
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if reservation is mapping %}
+                                {{ reservation.user_student_id|default('') }}
+                            {% else %}
+                                {{ reservation.user.student_id }}
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if reservation is mapping %}
+                                {{ reservation.date }}
+                            {% else %}
+                                {{ reservation.date.strftime('%Y-%m-%d') }}
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if reservation is mapping %}
+                                {{ reservation.start_time }}
+                            {% else %}
+                                {{ reservation.start_time.strftime('%H:%M') }}
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if reservation is mapping %}
+                                {{ reservation.end_time }}
+                            {% else %}
+                                {{ reservation.end_time.strftime('%H:%M') }}
+                            {% endif %}
+                        </td>
                         <td>{{ reservation.purpose }}</td>
                     </tr>
                     {% endfor %}
@@ -245,7 +417,5 @@
             <p>취소된 예약이 없습니다.</p>
         {% endif %}
     </div>
-    
-    
 </div>
 {% endblock %}

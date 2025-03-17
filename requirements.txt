@@ -26,3 +26,6 @@ gunicorn==21.2.0
 
 # 개발 환경
 flask-debugtoolbar==0.13.1
+
+# Supabase 클라이언트
+supabase==2.12.0

@@ -19,9 +19,9 @@
             <tbody>
                 {% for reservation in reservations %}
                 <tr>
-                    <td>{{ reservation.date.strftime('%Y-%m-%d') }}</td>
-                    <td>{{ reservation.start_time.strftime('%H:%M') }}</td>
-                    <td>{{ reservation.end_time.strftime('%H:%M') }}</td>
+                    <td>{{ reservation.date }}</td>
+                    <td>{{ reservation.start_time }}</td>
+                    <td>{{ reservation.end_time }}</td>
                     <td>{{ reservation.purpose }}</td>
                     <td>
                         {% if reservation.status == 'pending' %}

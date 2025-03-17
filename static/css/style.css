@@ -12,7 +12,7 @@
     --color-tertiary: #6C5CE7;       /* 3차 색상: 보라색 */
     
     --color-success: #2DD4BF;        /* 성공 */
-    --color-warning: #FCD34D;        /* 경고 */
+    --color-warning: #fbc71b;        /* 경고 */
     --color-error-light: #fc8a9a;    /* 오류 (밝은 버전) */
     --color-error: #fa3f5a;          /* 오류 */
     --color-error-dark: #E11D48;     /* 오류 (어두운 버전) */
@@ -1002,9 +1002,9 @@ label {
     background-color: var(--color-info) !important;
     border: var(--border-dark) !important;
 }
-.fc-timegrid-event-harness-inset .fc-timegrid-event, .fc-timegrid-event.fc-event-mirror, .fc-timegrid-more-link{
+.fc-timegrid-event.fc-event-past[style*="rgb(240, 173, 78)"], .fc-timegrid-event.fc-event-future[style*="rgb(240, 173, 78)"] {
     border-color: var(--color-dark) !important;       /* 원하는 색상으로 변경 */
-    background-color: var(--color-info) !important;
+    background-color: var(--color-warning) !important;
     border: var(--border-dark) !important;
     box-shadow: none !important;
 }
@@ -1036,7 +1036,7 @@ label {
 
 .auth-form-container form {
     width: 100%;
-    max-width: none !important; /* uCD5Cub300 ub108ube44 uc81cud55c uc81cuac70 ud569ub2c8ub2e4 */
+    max-width: none !important; 
 }
 
 .auth-form-container .form-group {
