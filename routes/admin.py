@@ -1,10 +1,9 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify
 from flask_login import login_required, current_user
-from models import db, Reservation, BlockedTime, User
+from models import User
 from datetime import datetime, timedelta
-from sqlalchemy import func
-from sqlalchemy.exc import OperationalError, PendingRollbackError
 import traceback
+import json
 
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
 
@@ -48,9 +47,8 @@ def dashboard():
             # 'all'인 경우, 모든 예약 가져오기
             all_reservations = repo.get_all_reservations(filter_type if filter_type != 'all' else None)
     except Exception as e:
-        flash(f'데이터 로딩 중 오류: {str(e)}', 'error')
-        # 백업: SQLite에서 데이터 가져오기
-        all_reservations = backup_get_reservations(filter_type, date_range, today, week_later)
+        flash(f'데이터 로딩 중 오류가 발생했습니다: {str(e)}', 'error')
+        traceback.print_exc()  # 로그에 상세 오류 출력
     
     # 데이터 그룹화 및 정렬
     dates = set()  # datetime 객체 저장
@@ -142,23 +140,6 @@ def dashboard():
                            filter_type=filter_type,
                            date_range=date_range,
                            today=today)
-
-# SQLite 백업 함수
-def backup_get_reservations(filter_type, date_range, today, week_later):
-    # 기본 쿼리 생성
-    query = Reservation.query
-    
-    # 날짜 범위 필터링
-    if date_range == 'week':
-        # 오늘부터 7일 후까지
-        query = query.filter(Reservation.date >= today, Reservation.date <= week_later)
-    
-    # 상태 필터링
-    if filter_type != 'all':
-        query = query.filter_by(status=filter_type)
-    
-    # 예약 데이터 가져오기
-    return query.all()
 
 @admin_bp.route('/approve/<int:reservation_id>', methods=['POST'])
 @login_required
@@ -340,13 +321,10 @@ def stats():
         # 시간대별 통계
         hour_stats = repo.get_hour_stats()
         
-        if not dept_stats or not hour_stats:
-            flash('Supabase에서 통계 데이터를 가져올 수 없습니다.', 'error')
-            # 결과가 없는 경우 빈 데이터 제공
-            if not dept_stats:
-                dept_stats = []
-            if not hour_stats:
-                hour_stats = []
+        # 데이터가 없는 경우 (빈 리스트인 경우) 정보 메시지 표시
+        if (dept_stats is not None and len(dept_stats) == 0) and \
+           (hour_stats is not None and len(hour_stats) == 0):
+            flash('현재 통계를 위한 예약 데이터가 없습니다.', 'info')
     except Exception as e:
         flash(f'통계 데이터를 가져오는 중 오류 발생: {str(e)}', 'error')
         # 오류 발생 시 빈 데이터 제공
