@@ -79,7 +79,12 @@ def register():
         new_user.set_password(password)
         
         # Supabase에 사용자 저장
+        # 현재 시간 기반 유니크 ID 생성
+        import time
+        user_id = int(time.time() * 1000)  # 밀리초 단위 타임스탬프
+        
         user_data = {
+            'id': user_id,  # 생성한 ID 추가
             'name': name,
             'student_id': student_id,
             'department': major,
