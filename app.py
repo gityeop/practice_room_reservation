@@ -1,6 +1,6 @@
 import os
-from flask import Flask, send_from_directory, g
-from flask_login import LoginManager
+from flask import Flask, send_from_directory, g, session, redirect, url_for, flash
+from flask_login import LoginManager, current_user, logout_user
 from config import Config
 from models import db, User
 from routes.auth import auth_bp
@@ -38,6 +38,33 @@ def teardown_repo(exception):
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'auth.login'
+
+# ---------------------------------------------------------------------------
+# 세션 토큰 검증 훅
+# ---------------------------------------------------------------------------
+@app.before_request
+def enforce_single_session():
+    """요청마다 세션 토큰의 유효성을 확인하여 다른 기기에서 로그인 시 기존 세션을 종료합니다."""
+    # 로그인 필요 없는 엔드포인트(정적 파일 등)는 무시
+    # current_user는 Flask-Login이 제공
+    if current_user.is_authenticated:
+        token = session.get('token')
+        if not token:
+            # 세션에 토큰이 없으면 로그아웃 처리
+            logout_user()
+            flash('세션이 만료되었습니다. 다시 로그인해주세요.', 'warning')
+            return redirect(url_for('auth.login'))
+
+        repo = get_repo()
+        user_data = repo.get_user_by_token(token)
+
+        # 토큰이 유효하지 않거나 다른 사용자에게 할당된 경우 -> 로그아웃
+        if not user_data or user_data.get('id') != current_user.id:
+            # 세션 및 로그인 정보 제거
+            session.pop('token', None)
+            logout_user()
+            flash('다른 기기에서 로그인되어 세션이 종료되었습니다.', 'warning')
+            return redirect(url_for('auth.login'))
 
 @login_manager.user_loader
 def load_user(user_id):
