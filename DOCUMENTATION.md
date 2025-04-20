@@ -29,18 +29,7 @@
 
 3. **blocked_times** - 예약 불가능 시간대
    - id, date, start_time, end_time, reason
-
-### 주요 모듈
-
-1. **routes/**
-   - **auth.py**: 인증 관련 기능 (로그인, 회원가입, 로그아웃)
-   - **admin.py**: 관리자 기능
-   - **reservation.py**: 예약 관련 기능
-
-2. **models.py**: 데이터베이스 모델 정의
-3. **repository.py**: Supabase 데이터 접근 계층
-4. **app.py**: 애플리케이션 메인 파일
-5. **config.py**: 애플리케이션 설정
+   - 
 
 ## 특징 및 기능
 
@@ -59,55 +48,6 @@
 - 모든 예약 조회 및 관리
 - 사용 불가능 시간대 설정
 - 사용자 관리
-
-## 설치 및 설정 방법
-
-### 필수 요구사항
-- Python 3.7 이상
-- pip (Python 패키지 관리자)
-- Supabase 계정 및 프로젝트
-
-### 설치 과정
-
-1. 저장소 복제:
-```bash
-git clone <저장소 URL>
-cd lab_reservation
-```
-
-2. 가상 환경 설정 (권장):
-```bash
-python -m venv venv
-source venv/bin/activate  # 리눅스/Mac
-venv\Scripts\activate    # 윈도우
-```
-
-3. 의존성 설치:
-```bash
-pip install -r requirements.txt
-```
-
-4. 환경 변수 설정:
-   - `.env` 파일 생성 또는 시스템 환경 변수 설정
-   - 필요한 환경 변수:
-     - `SUPABASE_URL`: Supabase 프로젝트 URL
-     - `SUPABASE_KEY`: Supabase API 키
-     - `SECRET_KEY`: Flask 보안 키
-     - `ADMIN_USERNAME`: 관리자 계정 학번
-
-5. 데이터베이스 초기화:
-```bash
-python init_db.py
-```
-
-6. 서버 실행:
-```bash
-# 개발 모드
-python app.py
-
-# 프로덕션 모드
-gunicorn --config gunicorn.conf.py app:app
-```
 
 ## 사용 방법
 

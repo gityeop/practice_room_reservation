@@ -111,8 +111,12 @@ def favicon():
 
 # 데이터베이스 생성 및 관리자 계정 생성 (SQLAlchemy 사용, 백업 목적으로 유지)
 with app.app_context():
-    # 새 칼럼 추가 위해 db.create_all() 실행
-    db.create_all()
+    # SQLite 백업용 DB에만 테이블을 생성 (원격 Postgres에는 생성하지 않음)
+    try:
+        if app.config['SQLALCHEMY_DATABASE_URI'].startswith('sqlite'):
+            db.create_all()
+    except Exception as e:
+        print(f"로컬 DB 테이블 생성 중 오류: {e}")
     
     # 관리자 계정이 없으면 생성 (token 필드 오류 방지)
     try:
